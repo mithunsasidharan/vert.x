@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.net;
@@ -62,6 +57,29 @@ public interface NetClient extends Measured {
    */
   @Fluent
   NetClient connect(int port, String host, String serverName, Handler<AsyncResult<NetSocket>> connectHandler);
+
+  /**
+   * Open a connection to a server at the specific {@code remoteAddress}.
+   * <p>
+   * The connect is done asynchronously and on success, a {@link NetSocket} instance is supplied via the {@code connectHandler} instance
+   *
+   * @param remoteAddress the remote address
+   * @return a reference to this, so the API can be used fluently
+   */
+  @Fluent
+  NetClient connect(SocketAddress remoteAddress, Handler<AsyncResult<NetSocket>> connectHandler);
+
+  /**
+   * Open a connection to a server at the specific {@code remoteAddress}.
+   * <p>
+   * The connect is done asynchronously and on success, a {@link NetSocket} instance is supplied via the {@code connectHandler} instance
+   *
+   * @param remoteAddress the remote address
+   * @param serverName the SNI server name
+   * @return a reference to this, so the API can be used fluently
+   */
+  @Fluent
+  NetClient connect(SocketAddress remoteAddress, String serverName, Handler<AsyncResult<NetSocket>> connectHandler);
 
   /**
    * Close the client.

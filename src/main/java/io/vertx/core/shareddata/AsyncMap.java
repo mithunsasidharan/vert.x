@@ -1,24 +1,24 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.shareddata;
 
+import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -134,4 +134,39 @@ public interface AsyncMap<K, V> {
    */
   void size(Handler<AsyncResult<Integer>> resultHandler);
 
+  /**
+   * Get the keys of the map, asynchronously.
+   * <p>
+   * Use this method with care as the map may contain a large number of keys,
+   * which may not fit entirely in memory of a single node.
+   * In this case, the invocation will result in an {@link OutOfMemoryError}.
+   *
+   * @param resultHandler invoked when the operation completes
+   */
+  @GenIgnore
+  void keys(Handler<AsyncResult<Set<K>>> resultHandler);
+
+  /**
+   * Get the values of the map, asynchronously.
+   * <p>
+   * Use this method with care as the map may contain a large number of values,
+   * which may not fit entirely in memory of a single node.
+   * In this case, the invocation will result in an {@link OutOfMemoryError}.
+   *
+   * @param resultHandler invoked when the operation completes
+   */
+  @GenIgnore
+  void values(Handler<AsyncResult<List<V>>> resultHandler);
+
+  /**
+   * Get the entries of the map, asynchronously.
+   * <p>
+   * Use this method with care as the map may contain a large number of entries,
+   * which may not fit entirely in memory of a single node.
+   * In this case, the invocation will result in an {@link OutOfMemoryError}.
+   *
+   * @param resultHandler invoked when the operation completes
+   */
+  @GenIgnore
+  void entries(Handler<AsyncResult<Map<K, V>>> resultHandler);
 }

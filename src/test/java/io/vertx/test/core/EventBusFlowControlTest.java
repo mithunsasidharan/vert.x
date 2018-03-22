@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+
 package io.vertx.test.core;
 
 import io.vertx.core.Context;
@@ -65,7 +76,7 @@ public class EventBusFlowControlTest extends VertxTestBase {
     vertx.runOnContext(v -> {
       sendBatch(prod, wqms, numBatches, 0);
     });
-    await(10, TimeUnit.SECONDS);
+    await();
   }
 
   private void sendBatch(MessageProducer<String> prod, int batchSize, int numBatches, int batchNumber) {
@@ -83,6 +94,21 @@ public class EventBusFlowControlTest extends VertxTestBase {
         batchNumber++;
       }
     }
+  }
+
+  @Test
+  public void testDrainHandlerCalledWhenQueueAlreadyDrained() throws Exception {
+    MessageConsumer<String> consumer = eb.consumer("some-address");
+    consumer.handler(msg -> {});
+    MessageProducer<String> prod = eb.sender("some-address");
+    prod.setWriteQueueMaxSize(1);
+    prod.write("msg");
+    assertTrue(prod.writeQueueFull());
+    waitUntil(() -> !prod.writeQueueFull());
+    prod.drainHandler(v -> {
+      testComplete();
+    });
+    await();
   }
 
   @Test

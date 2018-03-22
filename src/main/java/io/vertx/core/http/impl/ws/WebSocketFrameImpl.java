@@ -1,17 +1,12 @@
 /*
  * Copyright (c) 2010 The Netty Project
- * ------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.http.impl.ws;
@@ -22,6 +17,8 @@ import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCounted;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.impl.FrameType;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * The default {@link WebSocketFrameInternal} implementation.
@@ -36,6 +33,10 @@ public class WebSocketFrameImpl implements WebSocketFrameInternal, ReferenceCoun
   private final FrameType type;
   private final boolean isFinalFrame;
   private ByteBuf binaryData;
+
+  private boolean closeParsed = false;
+  private short closeStatusCode;
+  private String closeReason;
 
   /**
    * Creates a new empty text frame.
@@ -108,6 +109,8 @@ public class WebSocketFrameImpl implements WebSocketFrameInternal, ReferenceCoun
     return this.type == FrameType.CONTINUATION;
   }
 
+  public boolean isClose() { return this.type == FrameType.CLOSE; }
+
   public ByteBuf getBinaryData() {
     return binaryData;
   }
@@ -132,6 +135,11 @@ public class WebSocketFrameImpl implements WebSocketFrameInternal, ReferenceCoun
       this.binaryData.release();
     }
     this.binaryData = Unpooled.copiedBuffer(textData, CharsetUtil.UTF_8);
+  }
+
+  @Override
+  public int length() {
+    return binaryData.readableBytes();
   }
 
   @Override
@@ -180,6 +188,43 @@ public class WebSocketFrameImpl implements WebSocketFrameInternal, ReferenceCoun
   @Override
   public boolean isFinal() {
     return isFinalFrame;
+  }
+
+  private void parseCloseFrame() {
+    int length = length();
+    if (length < 2) {
+      closeStatusCode = 1000;
+      closeReason = null;
+    } else {
+      int index = binaryData.readerIndex();
+      closeStatusCode = binaryData.getShort(index);
+      if (length == 2) {
+        closeReason = null;
+      } else {
+        closeReason = binaryData.toString(index + 2, length - 2, StandardCharsets.UTF_8);
+      }
+    }
+  }
+
+  private void checkClose() {
+    if (!isClose())
+      throw new IllegalStateException("This should be a close frame");
+  }
+
+  @Override
+  public short closeStatusCode() {
+    checkClose();
+    if (!closeParsed)
+      parseCloseFrame();
+    return this.closeStatusCode;
+  }
+
+  @Override
+  public String closeReason() {
+    checkClose();
+    if (!closeParsed)
+      parseCloseFrame();
+    return this.closeReason;
   }
 
   @Override

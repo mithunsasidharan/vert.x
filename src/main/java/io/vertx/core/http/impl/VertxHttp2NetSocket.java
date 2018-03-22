@@ -1,22 +1,18 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- *  ------------------------------------------------------
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *      The Eclipse Public License is available at
- *      http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *      The Apache License v2.0 is available at
- *      http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.http.impl;
 
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.handler.codec.http2.Http2Stream;
 import io.netty.util.CharsetUtil;
 import io.vertx.codegen.annotations.Nullable;
@@ -31,6 +27,7 @@ import io.vertx.core.net.NetSocket;
 import io.vertx.core.net.SocketAddress;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 import javax.security.cert.X509Certificate;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -217,16 +214,27 @@ class VertxHttp2NetSocket<C extends Http2ConnectionBase> extends VertxHttp2Strea
 
       long contentLength = Math.min(length, file.length() - offset);
 
-      FileStreamChannel fileChannel = new FileStreamChannel(ar -> {
+      Future<Long> result = Future.future();
+      result.setHandler(ar -> {
         if (resultHandler != null) {
           resultCtx.runOnContext(v -> {
             resultHandler.handle(Future.succeededFuture());
           });
         }
-      }, this, offset, contentLength);
+      });
+
+      FileStreamChannel fileChannel = new FileStreamChannel(result, this, offset, contentLength);
       drainHandler(fileChannel.drainHandler);
-      handlerContext.channel().eventLoop().register(fileChannel);
-      fileChannel.pipeline().fireUserEventTriggered(raf);
+      handlerContext.channel()
+        .eventLoop()
+        .register(fileChannel)
+        .addListener((ChannelFutureListener) future -> {
+          if (future.isSuccess()) {
+            fileChannel.pipeline().fireUserEventTriggered(raf);
+          } else {
+            result.tryFail(future.cause());
+          }
+        });
     }
     return this;
   }
@@ -281,6 +289,11 @@ class VertxHttp2NetSocket<C extends Http2ConnectionBase> extends VertxHttp2Strea
   @Override
   public boolean isSsl() {
     return conn.isSsl();
+  }
+
+  @Override
+  public SSLSession sslSession() {
+    return conn.sslSession();
   }
 
   @Override

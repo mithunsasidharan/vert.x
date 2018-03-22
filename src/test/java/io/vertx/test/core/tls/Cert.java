@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+
 package io.vertx.test.core.tls;
 
 import io.vertx.core.net.JksOptions;
@@ -18,6 +29,7 @@ public interface Cert<K extends KeyCertOptions> extends Supplier<K> {
   Cert<PfxOptions> SERVER_PKCS12 = () -> new PfxOptions().setPath("tls/server-keystore.p12").setPassword("wibble");
   Cert<PfxOptions> CLIENT_PKCS12 = () -> new PfxOptions().setPath("tls/client-keystore.p12").setPassword("wibble");
   Cert<PemKeyCertOptions> SERVER_PEM = () -> new PemKeyCertOptions().setKeyPath("tls/server-key.pem").setCertPath("tls/server-cert.pem");
+  Cert<PemKeyCertOptions> SERVER_PEM_RSA = () -> new PemKeyCertOptions().setKeyPath("tls/server-key-pkcs1.pem").setCertPath("tls/server-cert.pem");
   Cert<PemKeyCertOptions> CLIENT_PEM = () -> new PemKeyCertOptions().setKeyPath("tls/client-key.pem").setCertPath("tls/client-cert.pem");
   Cert<JksOptions> SERVER_JKS_ROOT_CA = () -> new JksOptions().setPath("tls/server-keystore-root-ca.jks").setPassword("wibble");
   Cert<PfxOptions> SERVER_PKCS12_ROOT_CA = () -> new PfxOptions().setPath("tls/server-keystore-root-ca.p12").setPassword("wibble");

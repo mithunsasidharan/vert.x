@@ -1,17 +1,12 @@
 /*
- *  Copyright (c) 2011-2015 The original author or authors
- *  ------------------------------------------------------
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *       The Eclipse Public License is available at
- *       http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *       The Apache License v2.0 is available at
- *       http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.logging;
@@ -19,6 +14,7 @@ package io.vertx.core.logging;
 import io.vertx.core.spi.logging.LogDelegate;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.message.FormattedMessage;
+import org.apache.logging.log4j.message.Message;
 import org.apache.logging.log4j.spi.ExtendedLogger;
 
 /**
@@ -150,7 +146,11 @@ public class Log4j2LogDelegate implements LogDelegate {
   }
 
   private void log(Level level, Object message, Throwable t) {
-    logger.logIfEnabled(FQCN, level, null, message, t);
+    if (message instanceof Message) {
+      logger.logIfEnabled(FQCN, level, null, (Message) message, t);
+    } else {
+      logger.logIfEnabled(FQCN, level, null, message, t);
+    }
   }
 
   private void log(Level level, String message, Object... params) {

@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core;
@@ -25,6 +20,7 @@ import io.vertx.core.http.CaseInsensitiveHeaders;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * This class represents a MultiMap of String keys to a List of String values.
@@ -96,6 +92,35 @@ public interface MultiMap extends Iterable<Map.Entry<String, String>> {
    */
   @GenIgnore
   boolean contains(CharSequence name);
+
+  /**
+   * Check if there is a header with the specified {@code name} and {@code value}.
+   *
+   * If {@code caseInsensitive} is {@code true}, {@code value} is compared in a case-insensitive way.
+   *
+   * @param name the name to search for
+   * @param value the value to search for
+   * @return {@code true} if at least one entry is found
+   */
+  default boolean contains(String name, String value, boolean caseInsensitive) {
+    return getAll(name).stream()
+      .anyMatch(val -> caseInsensitive ? val.equalsIgnoreCase(value) : val.equals(value));
+  }
+
+  /**
+   * Like {@link #contains(String, String, boolean)} but accepting {@code CharSequence} parameters.
+   */
+  @GenIgnore
+  default boolean contains(CharSequence name, CharSequence value, boolean caseInsensitive) {
+    Predicate<String> predicate;
+    if (caseInsensitive) {
+      String valueAsString = value.toString();
+      predicate = val -> val.equalsIgnoreCase(valueAsString);
+    } else {
+      predicate = val -> val.contentEquals(value);
+    }
+    return getAll(name).stream().anyMatch(predicate);
+  }
 
   /**
    * Return true if empty

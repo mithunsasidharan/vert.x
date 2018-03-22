@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- *  ------------------------------------------------------
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *      The Eclipse Public License is available at
- *      http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *      The Apache License v2.0 is available at
- *      http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.net.impl;
@@ -23,6 +18,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.net.SocketAddress;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -67,26 +63,39 @@ public class AsyncResolveConnectHelper {
     }
   }
 
-  public static AsyncResolveConnectHelper doBind(VertxInternal vertx, int port, String host,
+  public static AsyncResolveConnectHelper doBind(VertxInternal vertx, SocketAddress socketAddress,
                                                  ServerBootstrap bootstrap) {
-    checkPort(port);
     AsyncResolveConnectHelper asyncResolveConnectHelper = new AsyncResolveConnectHelper();
-    vertx.resolveAddress(host, res -> {
-      if (res.succeeded()) {
-        // At this point the name is an IP address so there will be no resolve hit
-        InetSocketAddress t = new InetSocketAddress(res.result(), port);
-        ChannelFuture future = bootstrap.bind(t);
-        future.addListener(f -> {
-          if (f.isSuccess()) {
-            asyncResolveConnectHelper.handle(future, Future.succeededFuture(future.channel()));
-          } else {
-            asyncResolveConnectHelper.handle(future, Future.failedFuture(f.cause()));
-          }
-        });
-      } else {
-        asyncResolveConnectHelper.handle(null, Future.failedFuture(res.cause()));
-      }
-    });
+    bootstrap.channel(vertx.transport().serverChannelType(socketAddress.path() != null));
+    if (socketAddress.path() != null) {
+      java.net.SocketAddress converted = vertx.transport().convert(socketAddress, true);
+      ChannelFuture future = bootstrap.bind(converted);
+      future.addListener(f -> {
+        if (f.isSuccess()) {
+          asyncResolveConnectHelper.handle(future, Future.succeededFuture(future.channel()));
+        } else {
+          asyncResolveConnectHelper.handle(future, Future.failedFuture(f.cause()));
+        }
+      });
+    } else {
+      checkPort(socketAddress.port());
+      vertx.resolveAddress(socketAddress.host(), res -> {
+        if (res.succeeded()) {
+          // At this point the name is an IP address so there will be no resolve hit
+          InetSocketAddress t = new InetSocketAddress(res.result(), socketAddress.port());
+          ChannelFuture future = bootstrap.bind(t);
+          future.addListener(f -> {
+            if (f.isSuccess()) {
+              asyncResolveConnectHelper.handle(future, Future.succeededFuture(future.channel()));
+            } else {
+              asyncResolveConnectHelper.handle(future, Future.failedFuture(f.cause()));
+            }
+          });
+        } else {
+          asyncResolveConnectHelper.handle(null, Future.failedFuture(res.cause()));
+        }
+      });
+    }
     return asyncResolveConnectHelper;
   }
 }

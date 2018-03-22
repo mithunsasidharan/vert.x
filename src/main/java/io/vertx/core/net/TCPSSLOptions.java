@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2014 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.net;
@@ -28,7 +23,7 @@ import java.util.*;
  *
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
-@DataObject(generateConverter = true)
+@DataObject(generateConverter = true, publicConverter = false)
 public abstract class TCPSSLOptions extends NetworkOptions {
 
   /**
@@ -71,6 +66,30 @@ public abstract class TCPSSLOptions extends NetworkOptions {
    */
   public static final SSLEngineOptions DEFAULT_SSL_ENGINE = null;
 
+  /**
+   * The default ENABLED_SECURE_TRANSPORT_PROTOCOLS value = { "SSLv2Hello", "TLSv1", "TLSv1.1", "TLSv1.2" }
+   * <p/>
+   * SSLv3 is NOT enabled due to POODLE vulnerability http://en.wikipedia.org/wiki/POODLE
+   * <p/>
+   * "SSLv2Hello" is NOT enabled since it's disabled by default since JDK7
+   */
+  public static final List<String> DEFAULT_ENABLED_SECURE_TRANSPORT_PROTOCOLS = Collections.unmodifiableList(Arrays.asList("TLSv1", "TLSv1.1", "TLSv1.2"));
+
+  /**
+   * The default TCP_FASTOPEN value = false
+   */
+  public static final boolean DEFAULT_TCP_FAST_OPEN = false;
+
+  /**
+   * The default TCP_CORK value = false
+   */
+  public static final boolean DEFAULT_TCP_CORK = false;
+
+  /**
+   * The default TCP_QUICKACK value = false
+   */
+  public static final boolean DEFAULT_TCP_QUICKACK = false;
+
   private boolean tcpNoDelay;
   private boolean tcpKeepAlive;
   private int soLinger;
@@ -79,12 +98,15 @@ public abstract class TCPSSLOptions extends NetworkOptions {
   private boolean ssl;
   private KeyCertOptions keyCertOptions;
   private TrustOptions trustOptions;
-  private Set<String> enabledCipherSuites = new LinkedHashSet<>();
+  private Set<String> enabledCipherSuites;
   private ArrayList<String> crlPaths;
   private ArrayList<Buffer> crlValues;
   private boolean useAlpn;
   private SSLEngineOptions sslEngineOptions;
-  private Set<String> enabledSecureTransportProtocols = new LinkedHashSet<>();
+  private Set<String> enabledSecureTransportProtocols;
+  private boolean tcpFastOpen;
+  private boolean tcpCork;
+  private boolean tcpQuickAck;
 
   /**
    * Default constructor
@@ -115,6 +137,9 @@ public abstract class TCPSSLOptions extends NetworkOptions {
     this.useAlpn = other.useAlpn;
     this.sslEngineOptions = other.sslEngineOptions != null ? other.sslEngineOptions.clone() : null;
     this.enabledSecureTransportProtocols = other.getEnabledSecureTransportProtocols() == null ? new LinkedHashSet<>() : new LinkedHashSet<>(other.getEnabledSecureTransportProtocols());
+    this.tcpFastOpen = other.isTcpFastOpen();
+    this.tcpCork = other.isTcpCork();
+    this.tcpQuickAck = other.isTcpQuickAck();
   }
 
   /**
@@ -146,10 +171,15 @@ public abstract class TCPSSLOptions extends NetworkOptions {
     usePooledBuffers = DEFAULT_USE_POOLED_BUFFERS;
     idleTimeout = DEFAULT_IDLE_TIMEOUT;
     ssl = DEFAULT_SSL;
+    enabledCipherSuites = new LinkedHashSet<>();
     crlPaths = new ArrayList<>();
     crlValues = new ArrayList<>();
     useAlpn = DEFAULT_USE_ALPN;
-    sslEngineOptions = null;
+    sslEngineOptions = DEFAULT_SSL_ENGINE;
+    enabledSecureTransportProtocols = new LinkedHashSet<>(DEFAULT_ENABLED_SECURE_TRANSPORT_PROTOCOLS);
+    tcpFastOpen = DEFAULT_TCP_FAST_OPEN;
+    tcpCork = DEFAULT_TCP_CORK;
+    tcpQuickAck = DEFAULT_TCP_QUICKACK;
   }
 
   /**
@@ -534,9 +564,20 @@ public abstract class TCPSSLOptions extends NetworkOptions {
   }
 
   /**
+   * Sets the list of enabled SSL/TLS protocols.
+   *
+   * @param enabledSecureTransportProtocols  the SSL/TLS protocols to enable
+   * @return a reference to this, so the API can be used fluently
+   */
+  public TCPSSLOptions setEnabledSecureTransportProtocols(Set<String> enabledSecureTransportProtocols) {
+    this.enabledSecureTransportProtocols = enabledSecureTransportProtocols;
+    return this;
+  }
+
+  /**
    * Add an enabled SSL/TLS protocols, appended to the ordered protocols.
    *
-   * @param protocol  the SSL/TLS protocol do enabled
+   * @param protocol  the SSL/TLS protocol to enable
    * @return a reference to this, so the API can be used fluently
    */
   public TCPSSLOptions addEnabledSecureTransportProtocol(String protocol) {
@@ -545,16 +586,103 @@ public abstract class TCPSSLOptions extends NetworkOptions {
   }
 
   /**
+   * Removes an enabled SSL/TLS protocol from the ordered protocols.
+   *
+   * @param protocol the SSL/TLS protocol to disable
+   * @return a reference to this, so the API can be used fluently
+   */
+  public TCPSSLOptions removeEnabledSecureTransportProtocol(String protocol) {
+    enabledSecureTransportProtocols.remove(protocol);
+    return this;
+  }
+
+  /**
+   * @return wether {@code TCP_FASTOPEN} option is enabled
+   */
+  public boolean isTcpFastOpen() {
+    return tcpFastOpen;
+  }
+
+  /**
+   * Enable the {@code TCP_FASTOPEN} option - only with linux native transport.
+   *
+   * @param tcpFastOpen the fast open value
+   */
+  public TCPSSLOptions setTcpFastOpen(boolean tcpFastOpen) {
+    this.tcpFastOpen = tcpFastOpen;
+    return this;
+  }
+
+  /**
+   * @return wether {@code TCP_CORK} option is enabled
+   */
+  public boolean isTcpCork() {
+    return tcpCork;
+  }
+
+  /**
+   * Enable the {@code TCP_CORK} option - only with linux native transport.
+   *
+   * @param tcpCork the cork value
+   */
+  public TCPSSLOptions setTcpCork(boolean tcpCork) {
+    this.tcpCork = tcpCork;
+    return this;
+  }
+
+  /**
+   * @return wether {@code TCP_QUICKACK} option is enabled
+   */
+  public boolean isTcpQuickAck() {
+    return tcpQuickAck;
+  }
+
+  /**
+   * Enable the {@code TCP_QUICKACK} option - only with linux native transport.
+   *
+   * @param tcpQuickAck the quick ack value
+   */
+  public TCPSSLOptions setTcpQuickAck(boolean tcpQuickAck) {
+    this.tcpQuickAck = tcpQuickAck;
+    return this;
+  }
+
+  /**
    * Returns the enabled SSL/TLS protocols
    * @return the enabled protocols
    */
   public Set<String> getEnabledSecureTransportProtocols() {
-    return enabledSecureTransportProtocols;
+    return new LinkedHashSet<>(enabledSecureTransportProtocols);
   }
 
   @Override
   public TCPSSLOptions setLogActivity(boolean logEnabled) {
     return (TCPSSLOptions) super.setLogActivity(logEnabled);
+  }
+
+  @Override
+  public TCPSSLOptions setSendBufferSize(int sendBufferSize) {
+    return (TCPSSLOptions) super.setSendBufferSize(sendBufferSize);
+  }
+
+  @Override
+  public TCPSSLOptions setReceiveBufferSize(int receiveBufferSize) {
+    return (TCPSSLOptions) super.setReceiveBufferSize(receiveBufferSize);
+  }
+
+  @Override
+  public TCPSSLOptions setReuseAddress(boolean reuseAddress) {
+    return (TCPSSLOptions) super.setReuseAddress(reuseAddress);
+  }
+
+  @Override
+  public TCPSSLOptions setTrafficClass(int trafficClass) {
+    return (TCPSSLOptions) super.setTrafficClass(trafficClass);
+  }
+
+  @Override
+  public TCPSSLOptions setReusePort(boolean reusePort) {
+    return (TCPSSLOptions) super.setReusePort(reusePort);
   }
 
   @Override
@@ -570,6 +698,9 @@ public abstract class TCPSSLOptions extends NetworkOptions {
     if (ssl != that.ssl) return false;
     if (tcpKeepAlive != that.tcpKeepAlive) return false;
     if (tcpNoDelay != that.tcpNoDelay) return false;
+    if (tcpFastOpen != that.tcpFastOpen) return false;
+    if (tcpQuickAck != that.tcpQuickAck) return false;
+    if (tcpCork != that.tcpCork) return false;
     if (usePooledBuffers != that.usePooledBuffers) return false;
     if (crlPaths != null ? !crlPaths.equals(that.crlPaths) : that.crlPaths != null) return false;
     if (crlValues != null ? !crlValues.equals(that.crlValues) : that.crlValues != null) return false;
@@ -588,6 +719,9 @@ public abstract class TCPSSLOptions extends NetworkOptions {
   public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + (tcpNoDelay ? 1 : 0);
+    result = 31 * result + (tcpFastOpen ? 1 : 0);
+    result = 31 * result + (tcpCork ? 1 : 0);
+    result = 31 * result + (tcpQuickAck ? 1 : 0);
     result = 31 * result + (tcpKeepAlive ? 1 : 0);
     result = 31 * result + soLinger;
     result = 31 * result + (usePooledBuffers ? 1 : 0);

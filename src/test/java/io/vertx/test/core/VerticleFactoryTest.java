@@ -1,17 +1,12 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- * The Eclipse Public License is available at
- * http://www.eclipse.org/legal/epl-v10.html
- *
- * The Apache License v2.0 is available at
- * http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.test.core;
@@ -24,6 +19,7 @@ import io.vertx.core.spi.VerticleFactory;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.URLClassLoader;
 
 /**
  * @author <a href="http://tfox.org">Tim Fox</a>
@@ -213,10 +209,13 @@ public class VerticleFactoryTest extends VertxTestBase {
 
   @Test
   public void testResolve() {
+    if (!(Thread.currentThread().getContextClassLoader() instanceof URLClassLoader)) {
+      return;
+    }
     TestVerticle verticle = new TestVerticle();
     TestVerticleFactory fact = new TestVerticleFactory("actual", verticle);
     vertx.registerVerticleFactory(fact);
-    TestVerticleFactory factResolve = new TestVerticleFactory("resolve", "actual:myverticle");
+    TestVerticleFactory factResolve = new TestVerticleFactory("resolve", "actual:myverticle", "othergroup");
     vertx.registerVerticleFactory(factResolve);
     JsonObject config = new JsonObject().put("foo", "bar");
     DeploymentOptions original = new DeploymentOptions().setWorker(false).setConfig(config).setIsolationGroup("somegroup");
@@ -237,6 +236,44 @@ public class VerticleFactoryTest extends VertxTestBase {
       assertTrue(dep.deploymentOptions().isWorker());
       assertEquals("othergroup", dep.deploymentOptions().getIsolationGroup());
       testComplete();
+    });
+    await();
+  }
+
+  @Test
+  public void testResolve2() {
+    if (!(Thread.currentThread().getContextClassLoader() instanceof URLClassLoader)) {
+      return;
+    }
+    VerticleFactory fact = new VerticleFactory() {
+      @Override
+      public String prefix() {
+        return "resolve";
+      }
+      @Override
+      public boolean requiresResolve() {
+        return true;
+      }
+      @Override
+      public void resolve(String identifier, DeploymentOptions deploymentOptions, ClassLoader classLoader, Future<String> resolution) {
+        deploymentOptions.setMultiThreaded(true);
+        vertx.runOnContext(v -> {
+          // Async resolution
+          resolution.complete("whatever");
+        });
+      }
+      @Override
+      public Verticle createVerticle(String verticleName, ClassLoader classLoader) throws Exception {
+        throw new AssertionError("Should not be called");
+      }
+    }; ;
+    vertx.registerVerticleFactory(fact);
+    vertx.runOnContext(v -> {
+      vertx.deployVerticle("resolve:someid", onFailure(err -> {
+        // Expected since we deploy a non multi-threaded worker verticle
+        assertEquals(IllegalArgumentException.class, err.getClass());
+        testComplete();
+      }));
     });
     await();
   }
@@ -477,6 +514,7 @@ public class VerticleFactoryTest extends VertxTestBase {
     String prefix;
     Verticle verticle;
     String identifier;
+    String isolationGroup;
 
     String resolvedIdentifier;
 
@@ -501,6 +539,12 @@ public class VerticleFactoryTest extends VertxTestBase {
     TestVerticleFactory(String prefix, String resolvedIdentifier) {
       this.prefix = prefix;
       this.resolvedIdentifier = resolvedIdentifier;
+    }
+
+    TestVerticleFactory(String prefix, String resolvedIdentifier, String isolationGroup) {
+      this.prefix = prefix;
+      this.resolvedIdentifier = resolvedIdentifier;
+      this.isolationGroup = isolationGroup;
     }
 
     TestVerticleFactory(String prefix, Verticle verticle, int order) {
@@ -549,7 +593,7 @@ public class VerticleFactoryTest extends VertxTestBase {
         // Now we change the deployment options
         deploymentOptions.setConfig(new JsonObject().put("wibble", "quux"));
         deploymentOptions.setWorker(true);
-        deploymentOptions.setIsolationGroup("othergroup");
+        deploymentOptions.setIsolationGroup(isolationGroup);
         resolution.complete(resolvedIdentifier);
       }
     }

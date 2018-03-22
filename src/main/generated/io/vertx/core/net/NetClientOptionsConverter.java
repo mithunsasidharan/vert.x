@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
  * Red Hat licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -24,9 +24,9 @@ import io.vertx.core.json.JsonArray;
  *
  * NOTE: This class has been automatically generated from the {@link io.vertx.core.net.NetClientOptions} original class using Vert.x codegen.
  */
-public class NetClientOptionsConverter {
+ class NetClientOptionsConverter {
 
-  public static void fromJson(JsonObject json, NetClientOptions obj) {
+   static void fromJson(JsonObject json, NetClientOptions obj) {
     if (json.getValue("hostnameVerificationAlgorithm") instanceof String) {
       obj.setHostnameVerificationAlgorithm((String)json.getValue("hostnameVerificationAlgorithm"));
     }
@@ -38,7 +38,7 @@ public class NetClientOptionsConverter {
     }
   }
 
-  public static void toJson(NetClientOptions obj, JsonObject json) {
+   static void toJson(NetClientOptions obj, JsonObject json) {
     if (obj.getHostnameVerificationAlgorithm() != null) {
       json.put("hostnameVerificationAlgorithm", obj.getHostnameVerificationAlgorithm());
     }

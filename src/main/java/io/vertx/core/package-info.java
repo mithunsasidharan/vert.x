@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2014 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 /**
@@ -34,6 +29,7 @@
  * * DNS client
  * * File system access
  * * High availability
+ * * Native transports
  * * Clustering
  *
  * The functionality in core is fairly low level - you won't find stuff like database access, authorisation or high level
@@ -462,15 +458,15 @@
  * This means we can guarantee that all the code in your verticle instance is always executed on the same event loop (as
  * long as you don't create your own threads and call it!).
  *
- * This means you can write all the code in your application as single threaded and let Vert.x worrying about the threading
+ * This means you can write all the code in your application as single threaded and let Vert.x worry about the threading
  * and scaling. No more worrying about +synchronized+ and +volatile+ any more, and you also avoid many other cases of race conditions
  * and deadlock so prevalent when doing hand-rolled 'traditional' multi-threaded application development.
  *
  * [[worker_verticles]]
  * === Worker verticles
  *
- * A worker verticle is just like a standard verticle but it's executed not using an event loop, but using a thread from
- * the Vert.x worker thread pool.
+ * A worker verticle is just like a standard verticle but it's executed using a thread from the Vert.x worker thread pool,
+ * rather than using an event loop.
  *
  * Worker verticles are designed for calling blocking code, as they won't block any event loops.
  *
@@ -588,14 +584,14 @@
  * ----
  *
  * This is useful for scaling easily across multiple cores. For example you might have a web-server verticle to deploy
- * and multiple cores on your machine, so you want to deploy multiple instances to take utilise all the cores.
+ * and multiple cores on your machine, so you want to deploy multiple instances to utilise all the cores.
  *
  * include::override/verticle-configuration.adoc[]
  *
  * === Verticle Isolation Groups
  *
  * By default, Vert.x has a _flat classpath_. I.e, when Vert.x deploys verticles it does so with the current classloader -
- * it doesn't create a new one. In the majority of cases this is the simplest, clearest and sanest thing to do.
+ * it doesn't create a new one. In the majority of cases this is the simplest, clearest, and sanest thing to do.
  *
  * However, in some cases you may want to deploy a verticle so the classes of that verticle are isolated from others in
  * your application.
@@ -790,7 +786,7 @@
  *
  * === Verticle worker pool
  *
- * Verticle use the Vert.x worker pool for executing blocking actions, i.e {@link io.vertx.core.Context#executeBlocking} or
+ * Verticles use the Vert.x worker pool for executing blocking actions, i.e {@link io.vertx.core.Context#executeBlocking} or
  * worker verticle.
  *
  * A different worker pool can be specified in deployment options:
@@ -1529,6 +1525,87 @@
  * Quora can also be used in conjunction with ha groups. In that case, quora are resolved for each particular
  * group.
  *
+ * == Native transports
+ *
+ * Vert.x can run with http://netty.io/wiki/native-transports.html[native transports] (when available) on BSD (OSX) and Linux:
+ *
+ * [source,$lang]
+ * ----
+ * {@link examples.CoreExamples#configureNative()}
+ * ----
+ *
+ * NOTE: preferring native transport will not prevent the application to execute, if your application requires native
+ * transport, you need to check {@link io.vertx.core.Vertx#isNativeTransportEnabled()}.
+ *
+ * === Native Linux Transport
+ *
+ * You need to add the following dependency in your classpath:
+ *
+ * [source,xml]
+ * ----
+ * <dependency>
+ *   <groupId>io.netty</groupId>
+ *   <artifactId>netty-transport-native-epoll</artifactId>
+ *   <version>4.1.15.Final</version>
+ *   <classifier>linux-x86_64</classifier>
+ * </dependency>
+ * ----
+ *
+ * Native on Linux gives you extra networking options:
+ *
+ * * SO_REUSEPORT
+ * * TCP_QUICKACK
+ * * TCP_CORK
+ * * TCP_FASTOPEN
+ *
+ * [source,$lang]
+ * ----
+ * {@link examples.CoreExamples#configureLinuxOptions}
+ * ----
+ *
+ * === Native BSD Transport
+ *
+ * You need to add the following dependency in your classpath:
+ *
+ * [source,xml]
+ * ----
+ * <dependency>
+ *   <groupId>io.netty</groupId>
+ *   <artifactId>netty-transport-native-epoll</artifactId>
+ *   <version>4.1.15.Final</version>
+ *   <classifier>osx-x86_64</classifier>
+ * </dependency>
+ * ----
+ *
+ * MacOS Sierra and above are supported.
+ *
+ * Native on BSD gives you extra networking options:
+ *
+ * * SO_REUSEPORT
+ *
+ * [source,$lang]
+ * ----
+ * {@link examples.CoreExamples#configureBSDOptions}
+ * ----
+ *
+ * === Domain sockets
+ *
+ * Natives provide support domain sockets for `NetServer`:
+ *
+ * [source,$lang]
+ * ----
+ * {@link examples.CoreExamples#serverWithDomainSockets}
+ * ----
+ *
+ * As well as `NetClient`:
+ *
+ * [source,$lang]
+ * ----
+ * {@link examples.CoreExamples#clientWithDomainSockets}
+ * ----
+ *
+ * NOTE: support for `HttpServer` and `HttpClient` can be expected in later versions of Vert.x
+ *
  * == Security notes
  *
  * Vert.x is a toolkit, not an opinionated framework where we force you to do things in a certain way. This gives you
@@ -1695,8 +1772,5 @@
  * very careful when using this settings.
  *
  */
-@Document(fileName = "index.adoc")
 @io.vertx.codegen.annotations.ModuleGen(name = "vertx", groupPackage = "io.vertx")
 package io.vertx.core;
-
-import io.vertx.docgen.Document;

@@ -1,23 +1,20 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- *  ------------------------------------------------------
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *      The Eclipse Public License is available at
- *      http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *      The Apache License v2.0 is available at
- *      http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.http.impl;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -29,17 +26,21 @@ import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.StreamResetException;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.spi.metrics.HttpServerMetrics;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+
+import static io.vertx.core.spi.metrics.Metrics.METRICS_ENABLED;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -104,7 +105,8 @@ public class Http2ServerResponseImpl implements HttpServerResponse {
       putHeader(HttpHeaderNames.CONTENT_ENCODING, contentEncoding);
     }
 
-    this.metric = conn.metrics().responsePushed(conn.metric(), method, path, this);
+    HttpServerMetrics metrics = conn.metrics();
+    this.metric = (METRICS_ENABLED && metrics != null) ? metrics.responsePushed(conn.metric(), method, path, this) : null;
   }
 
   synchronized void beginRequest() {
@@ -140,7 +142,9 @@ public class Http2ServerResponseImpl implements HttpServerResponse {
   @Override
   public HttpServerResponse exceptionHandler(Handler<Throwable> handler) {
     synchronized (conn) {
-      checkEnded();
+      if (handler != null) {
+        checkEnded();
+      }
       exceptionHandler = handler;
       return this;
     }
@@ -295,7 +299,9 @@ public class Http2ServerResponseImpl implements HttpServerResponse {
   @Override
   public HttpServerResponse closeHandler(Handler<Void> handler) {
     synchronized (conn) {
-      checkEnded();
+      if (handler != null) {
+        checkEnded();
+      }
       closeHandler = handler;
       return this;
     }
@@ -304,7 +310,9 @@ public class Http2ServerResponseImpl implements HttpServerResponse {
   @Override
   public HttpServerResponse endHandler(@Nullable Handler<Void> handler) {
     synchronized (conn) {
-      checkEnded();
+      if (handler != null) {
+        checkEnded();
+      }
       endHandler = handler;
       return this;
     }
@@ -369,9 +377,6 @@ public class Http2ServerResponseImpl implements HttpServerResponse {
 
   private void end(ByteBuf chunk) {
     synchronized (conn) {
-      if (chunk != null && !headers.contains(HttpHeaderNames.CONTENT_LENGTH)) {
-        headers().set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(chunk.readableBytes()));
-      }
       write(chunk, true);
     }
   }
@@ -396,18 +401,22 @@ public class Http2ServerResponseImpl implements HttpServerResponse {
   void write(ByteBuf chunk, boolean end) {
     synchronized (conn) {
       checkEnded();
+      boolean hasBody = false;
+      if (chunk != null) {
+        hasBody = true;
+        bytesWritten += chunk.readableBytes();
+      } else {
+        chunk = Unpooled.EMPTY_BUFFER;
+      }
       if (end) {
+        if (!headWritten && !headers.contains(HttpHeaderNames.CONTENT_LENGTH)) {
+          headers().set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(chunk.readableBytes()));
+        }
         handleEnded(false);
       }
-      boolean hasBody = chunk != null;
       boolean sent = checkSendHeaders(end && !hasBody && trailers == null);
       if (hasBody || (!sent && end)) {
-        if (chunk == null) {
-          chunk = Unpooled.EMPTY_BUFFER;
-        }
-        int len = chunk.readableBytes();
         stream.writeData(chunk, end && trailers == null);
-        bytesWritten += len;
       }
       if (end && trailers != null) {
         stream.writeHeaders(trailers, true);
@@ -438,7 +447,7 @@ public class Http2ServerResponseImpl implements HttpServerResponse {
   private void handleEnded(boolean failed) {
     if (!ended) {
       ended = true;
-      if (metric != null) {
+      if (METRICS_ENABLED && metric != null) {
         // Null in case of push response : handle this case
         if (failed) {
           conn.metrics().requestReset(metric);
@@ -446,6 +455,9 @@ public class Http2ServerResponseImpl implements HttpServerResponse {
           conn.reportBytesWritten(bytesWritten);
           conn.metrics().responseEnd(metric, this);
         }
+      }
+      if (exceptionHandler != null) {
+        conn.getContext().runOnContext(v -> exceptionHandler.handle(new VertxException("Connection was closed")));
       }
       if (endHandler != null) {
         conn.getContext().runOnContext(endHandler);
@@ -482,7 +494,9 @@ public class Http2ServerResponseImpl implements HttpServerResponse {
   @Override
   public HttpServerResponse drainHandler(Handler<Void> handler) {
     synchronized (conn) {
-      checkEnded();
+      if (handler != null) {
+        checkEnded();
+      }
       drainHandler = handler;
       return this;
     }
@@ -534,7 +548,8 @@ public class Http2ServerResponseImpl implements HttpServerResponse {
       }
       checkSendHeaders(false);
 
-      FileStreamChannel fileChannel = new FileStreamChannel(ar -> {
+      Future<Long> result = Future.future();
+      result.setHandler(ar -> {
         if (ar.succeeded()) {
           bytesWritten += ar.result();
           end();
@@ -544,10 +559,20 @@ public class Http2ServerResponseImpl implements HttpServerResponse {
             resultHandler.handle(Future.succeededFuture());
           });
         }
-      }, stream, offset, contentLength);
+      });
+
+      FileStreamChannel fileChannel = new FileStreamChannel(result, stream, offset, contentLength);
       drainHandler(fileChannel.drainHandler);
-      ctx.channel().eventLoop().register(fileChannel);
-      fileChannel.pipeline().fireUserEventTriggered(raf);
+      ctx.channel()
+        .eventLoop()
+        .register(fileChannel)
+        .addListener((ChannelFutureListener) future -> {
+        if (future.isSuccess()) {
+          fileChannel.pipeline().fireUserEventTriggered(raf);
+        } else {
+          result.tryFail(future.cause());
+        }
+      });
     }
     return this;
   }

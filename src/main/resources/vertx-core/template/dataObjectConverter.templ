@@ -3,19 +3,19 @@
 @declare{'genPropFromJson'}
 	@if{property.list || property.set}
 	@{indent}if (json.getValue("@{property.name}") instanceof JsonArray) {\n
-		@if{property.adder}
-			@{indent}  json.getJsonArray("@{property.name}").forEach(item -> {\n
-			@{indent}    if (item instanceof @{cast})\n
-			@{indent}      obj.@{property.adderMethod}(@{before}item@{after});\n
-			@{indent}  });\n
-		@else{property.setter}
-			@code{coll = property.list ? 'java.util.ArrayList' : 'java.util.HashSet'}
+		@if{property.setter}
+			@code{coll = property.list ? 'java.util.ArrayList' : 'java.util.LinkedHashSet'}
 			@{indent}  @{coll}<@{propType.name}> list = new @{coll}<>();\n
 			@{indent}  json.getJsonArray("@{property.name}").forEach( item -> {\n
 			@{indent}    if (item instanceof @{cast})\n
 			@{indent}      list.add(@{before}item@{after});\n
 			@{indent}  });\n
 			@{indent}  obj.@{property.setterMethod}(list);\n
+		@else{property.adder}
+			@{indent}  json.getJsonArray("@{property.name}").forEach(item -> {\n
+			@{indent}    if (item instanceof @{cast})\n
+			@{indent}      obj.@{property.adderMethod}(@{before}item@{after});\n
+			@{indent}  });\n
 		@end{}
 	@{indent}}\n
 	@else{property.map}
@@ -55,7 +55,7 @@
 
 
 /*\n
- * Copyright 2014 Red Hat, Inc.\n
+ * Copyright (c) 2014 Red Hat, Inc. and others\n
  *\n
  * Red Hat licenses this file to you under the Apache License, version 2.0\n
  * (the "License"); you may not use this file except in compliance with the\n
@@ -77,9 +77,10 @@ import io.vertx.core.json.JsonArray;\n
 /**\n
 @{computeConverterClassJavadoc(type.name)}
  */\n
-public class @{type.simpleName}Converter {\n
+@code{visibility=publicConverter?'public ':' '}
+@{visibility}class @{type.simpleName}Converter {\n
 \n
-  public static void fromJson(JsonObject json, @{type.simpleName} obj) {\n
+  @{visibility}static void fromJson(JsonObject json, @{type.simpleName} obj) {\n
 		@foreach{property:properties}
 			@if{property.declared || inheritConverter}
 				@code{propType=property.type}
@@ -146,7 +147,7 @@ public class @{type.simpleName}Converter {\n
 @end{}
 
 \n
-  public static void toJson(@{type.simpleName} obj, JsonObject json) {\n
+  @{visibility}static void toJson(@{type.simpleName} obj, JsonObject json) {\n
 		@foreach{property:properties}
 			@if{(property.declared || inheritConverter) && property.getterMethod != null && property.jsonifiable}
 				@code{propType=property.type}

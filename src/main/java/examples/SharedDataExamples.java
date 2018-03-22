@@ -1,26 +1,23 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *  The Eclipse Public License is available at
- *  http://www.eclipse.org/legal/epl-v10.html
- *
- *  The Apache License v2.0 is available at
- *  http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package examples;
 
-import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.net.*;
-import io.vertx.core.shareddata.*;
+import io.vertx.core.shareddata.AsyncMap;
+import io.vertx.core.shareddata.Counter;
+import io.vertx.core.shareddata.LocalMap;
+import io.vertx.core.shareddata.Lock;
+import io.vertx.core.shareddata.SharedData;
 
 /**
  * Created by tim on 19/01/15.
@@ -54,7 +51,7 @@ public class SharedDataExamples {
 
     SharedData sd = vertx.sharedData();
 
-    sd.<String, String>getClusterWideMap("mymap", res -> {
+    sd.<String, String>getAsyncMap("mymap", res -> {
       if (res.succeeded()) {
         AsyncMap<String, String> map = res.result();
       } else {

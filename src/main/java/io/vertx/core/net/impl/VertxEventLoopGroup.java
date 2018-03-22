@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.net.impl;
@@ -26,8 +21,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author <a href="http://tfox.org">Tim Fox</a>
@@ -37,9 +30,6 @@ public final class VertxEventLoopGroup extends AbstractEventExecutorGroup implem
 
   private int pos;
   private final List<EventLoopHolder> workers = new ArrayList<>();
-  private final CountDownLatch latch = new CountDownLatch(1);
-  private final AtomicBoolean gracefulShutdown = new AtomicBoolean();
-  private final Promise<?> terminationFuture = new DefaultPromise<Void>(GlobalEventExecutor.INSTANCE);
 
   @Override
   public synchronized EventLoop next() {
@@ -75,7 +65,7 @@ public final class VertxEventLoopGroup extends AbstractEventExecutorGroup implem
 
   @Override
   public boolean isShutdown() {
-    return latch.getCount() == 0;
+    return false;
   }
 
   @Override
@@ -84,8 +74,8 @@ public final class VertxEventLoopGroup extends AbstractEventExecutorGroup implem
   }
 
   @Override
-  public synchronized boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-    return latch.await(timeout, unit);
+  public synchronized boolean awaitTermination(long timeout, TimeUnit unit) {
+    return false;
   }
 
   public synchronized void addWorker(EventLoop worker) {
@@ -98,40 +88,22 @@ public final class VertxEventLoopGroup extends AbstractEventExecutorGroup implem
   }
 
   public synchronized void shutdown() {
-    for (EventLoopHolder holder : workers) {
-      holder.worker.shutdown();
-    }
-    latch.countDown();
+    throw new UnsupportedOperationException("Should never be called");
   }
 
   @Override
   public boolean isShuttingDown() {
-    return gracefulShutdown.get();
+    return false;
   }
 
   @Override
   public Future<?> shutdownGracefully(long quietPeriod, long timeout, TimeUnit unit) {
-    if (gracefulShutdown.compareAndSet(false, true)) {
-      final AtomicInteger counter = new AtomicInteger(workers.size());
-      for (EventLoopHolder holder : workers) {
-        // We don't use a lambda here just to keep IntelliJ happy as it (incorrectly) flags a syntax error
-        // here
-        holder.worker.shutdownGracefully().addListener(new GenericFutureListener() {
-          @Override
-          public void operationComplete(Future future) throws Exception {
-            if (counter.decrementAndGet() == 0) {
-              terminationFuture.setSuccess(null);
-            }
-          }
-        });
-      }
-    }
-    return terminationFuture;
+    throw new UnsupportedOperationException("Should never be called");
   }
 
   @Override
   public Future<?> terminationFuture() {
-    return terminationFuture;
+    throw new UnsupportedOperationException("Should never be called");
   }
 
   private EventLoopHolder findHolder(EventLoop worker) {

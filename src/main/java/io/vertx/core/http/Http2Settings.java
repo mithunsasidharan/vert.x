@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- *  ------------------------------------------------------
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *      The Eclipse Public License is available at
- *      http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *      The Apache License v2.0 is available at
- *      http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.http;
@@ -33,7 +28,7 @@ import java.util.Map;
  *
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-@DataObject(generateConverter = true)
+@DataObject(generateConverter = true, publicConverter = false)
 public class Http2Settings {
 
   /**
@@ -295,8 +290,8 @@ public class Http2Settings {
    * @return a reference to this, so the API can be used fluently
    */
   public Http2Settings set(int id, long value) {
-    Arguments.require(id >= 0 || id <= 0xFFFF, "Setting id must me an unsigned 16-bit value");
-    Arguments.require(value >= 0 || value <= 0xFFFFFFFF, "Setting value must me an unsigned 32-bit value");
+    Arguments.require(id >= 0 && id <= 0xFFFF, "Setting id must me an unsigned 16-bit value");
+    Arguments.require(value >= 0L && value <= 0xFFFFFFFFL, "Setting value must me an unsigned 32-bit value");
     switch (id) {
       case 1:
         setHeaderTableSize(value);
@@ -345,14 +340,13 @@ public class Http2Settings {
 
   @Override
   public int hashCode() {
-    long result = super.hashCode();
+    int result = (int) (headerTableSize ^ (headerTableSize >>> 32));
     result = 31 * result + (pushEnabled ? 1 : 0);
-    result = 31 * result + maxConcurrentStreams;
-    result = 31 * result + maxConcurrentStreams;
+    result = 31 * result + (int) (maxConcurrentStreams ^ (maxConcurrentStreams >>> 32));
     result = 31 * result + initialWindowSize;
     result = 31 * result + maxFrameSize;
-    result = 31 * result + maxHeaderListSize;
-    return Long.hashCode(result);
+    result = 31 * result + (int) (maxHeaderListSize ^ (maxHeaderListSize >>> 32));
+    return result;
   }
 
   @Override

@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2014 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.spi.metrics;
@@ -84,7 +79,7 @@ public interface VertxMetrics extends Metrics, Measured {
    * This method should be called only once.
    *
    * @param eventBus the Vert.x event bus
-   * @return the event bus metrics SPI
+   * @return the event bus metrics SPI or {@code null} when metrics are disabled
    */
   EventBusMetrics createMetrics(EventBus eventBus);
 
@@ -101,7 +96,7 @@ public interface VertxMetrics extends Metrics, Measured {
    * @param server       the Vert.x http server
    * @param localAddress localAddress the local address the net socket is listening on
    * @param options      the options used to create the {@link io.vertx.core.http.HttpServer}
-   * @return the http server metrics SPI
+   * @return the http server metrics SPI or {@code null} when metrics are disabled
    */
   HttpServerMetrics<?, ?, ?> createMetrics(HttpServer server, SocketAddress localAddress, HttpServerOptions options);
 
@@ -112,7 +107,7 @@ public interface VertxMetrics extends Metrics, Measured {
    *
    * @param client  the Vert.x http client
    * @param options the options used to create the {@link io.vertx.core.http.HttpClient}
-   * @return the http client metrics SPI
+   * @return the http client metrics SPI or {@code null} when metrics are disabled
    */
   HttpClientMetrics<?, ?, ?, ?, ?> createMetrics(HttpClient client, HttpClientOptions options);
 
@@ -128,7 +123,7 @@ public interface VertxMetrics extends Metrics, Measured {
    *
    * @param localAddress localAddress the local address the net socket is listening on
    * @param options      the options used to create the {@link NetServer}
-   * @return the net server metrics SPI
+   * @return the net server metrics SPI or {@code null} when metrics are disabled
    */
   TCPMetrics<?> createMetrics(SocketAddress localAddress, NetServerOptions options);
 
@@ -138,7 +133,7 @@ public interface VertxMetrics extends Metrics, Measured {
    * No specific thread and context can be expected when this method is called.
    *
    * @param options the options used to create the {@link NetClient}
-   * @return the net client metrics SPI
+   * @return the net client metrics SPI or {@code null} when metrics are disabled
    */
   TCPMetrics<?> createMetrics(NetClientOptions options);
 
@@ -149,7 +144,7 @@ public interface VertxMetrics extends Metrics, Measured {
    *
    * @param socket  the Vert.x datagram socket
    * @param options the options used to create the {@link io.vertx.core.datagram.DatagramSocket}
-   * @return the datagram metrics SPI
+   * @return the datagram metrics SPI or {@code null} when metrics are disabled
    */
   DatagramSocketMetrics createMetrics(DatagramSocket socket, DatagramSocketOptions options);
 
@@ -170,7 +165,8 @@ public interface VertxMetrics extends Metrics, Measured {
    * @param pool the pool of resource, it can be used by the metrics implementation to gather extra statistics
    * @param poolType the type of the pool e.g worker, datasource, etc..
    * @param poolName the name of the pool
-   * @param maxPoolSize the pool max size, or -1 if the number cannot be determined   @return the thread pool metrics SPI
+   * @param maxPoolSize the pool max size, or -1 if the number cannot be determined
+   * @return the thread pool metrics SPI or {@code null} when metrics are disabled
    */
   <P> PoolMetrics<?> createMetrics(P pool, String poolType, String poolName, int maxPoolSize);
 }

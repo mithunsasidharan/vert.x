@@ -1,18 +1,14 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
+
 package io.vertx.core.impl;
 
 import io.vertx.core.logging.Logger;
@@ -37,33 +33,52 @@ public class TaskQueue {
 
   static final Logger log = LoggerFactory.getLogger(TaskQueue.class);
 
-  // @protectedby tasks
-  private final LinkedList<Runnable> tasks = new LinkedList<>();
+  private static class Task {
+
+    private final Runnable runnable;
+    private final Executor exec;
+
+    public Task(Runnable runnable, Executor exec) {
+      this.runnable = runnable;
+      this.exec = exec;
+    }
+  }
 
   // @protectedby tasks
-  private boolean running;
+  private final LinkedList<Task> tasks = new LinkedList<>();
+
+  // @protectedby tasks
+  private Executor current;
 
   private final Runnable runner;
 
   public TaskQueue() {
-    runner = () -> {
-      for (; ; ) {
-        final Runnable task;
-        synchronized (tasks) {
-          task = tasks.poll();
-          if (task == null) {
-            running = false;
-            return;
-          }
+    runner = this::run;
+  }
+
+  private void run() {
+    for (; ; ) {
+      final Task task;
+      synchronized (tasks) {
+        task = tasks.poll();
+        if (task == null) {
+          current = null;
+          return;
         }
-        try {
-          task.run();
-        } catch (Throwable t) {
-          log.error("Caught unexpected Throwable", t);
+        if (task.exec != current) {
+          tasks.addFirst(task);
+          task.exec.execute(runner);
+          current = task.exec;
+          return;
         }
       }
-    };
-  }
+      try {
+        task.runnable.run();
+      } catch (Throwable t) {
+        log.error("Caught unexpected Throwable", t);
+      }
+    }
+  };
 
   /**
    * Run a task.
@@ -72,9 +87,9 @@ public class TaskQueue {
    */
   public void execute(Runnable task, Executor executor) {
     synchronized (tasks) {
-      tasks.add(task);
-      if (!running) {
-        running = true;
+      tasks.add(new Task(task, executor));
+      if (current == null) {
+        current = executor;
         executor.execute(runner);
       }
     }

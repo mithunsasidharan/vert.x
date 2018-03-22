@@ -1,17 +1,12 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *  The Eclipse Public License is available at
- *  http://www.eclipse.org/legal/epl-v10.html
- *
- *  The Apache License v2.0 is available at
- *  http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package examples;
@@ -512,12 +507,15 @@ public class NetExamples {
     NetServer server = vertx.createNetServer(options);
   }
 
+  /**
+   * The default protocols are defined in {@link io.vertx.core.net.TCPSSLOptions#DEFAULT_ENABLED_SECURE_TRANSPORT_PROTOCOLS}, but you can change them.
+   */
   public void example45(Vertx vertx, JksOptions keyStoreOptions) {
     NetServerOptions options = new NetServerOptions().
       setSsl(true).
       setKeyStoreOptions(keyStoreOptions).
-      addEnabledSecureTransportProtocol("TLSv1.1").
-      addEnabledSecureTransportProtocol("TLSv1.2");
+      removeEnabledSecureTransportProtocol("TLSv1").
+      addEnabledSecureTransportProtocol("TLSv1.3");
     NetServer server = vertx.createNetServer(options);
   }
 

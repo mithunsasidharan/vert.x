@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2014 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.eventbus.impl.clustered;
@@ -244,7 +239,9 @@ public class ClusteredEventBus extends EventBusImpl {
         if (serverIDs != null && !serverIDs.isEmpty()) {
           sendToSubs(serverIDs, sendContext);
         } else {
-          metrics.messageSent(address, !sendContext.message.isSend(), true, false);
+          if (metrics != null) {
+            metrics.messageSent(address, !sendContext.message.isSend(), true, false);
+          }
           deliverMessageLocally(sendContext);
         }
       } else {
@@ -312,7 +309,7 @@ public class ClusteredEventBus extends EventBusImpl {
 
   private Handler<NetSocket> getServerHandler() {
     return socket -> {
-      RecordParser parser = RecordParser.newFixed(4, null);
+      RecordParser parser = RecordParser.newFixed(4);
       Handler<Buffer> handler = new Handler<Buffer>() {
         int size = -1;
 
@@ -323,7 +320,9 @@ public class ClusteredEventBus extends EventBusImpl {
           } else {
             ClusteredMessage received = new ClusteredMessage();
             received.readFromWire(buff, codecManager);
-            metrics.messageRead(received.address(), buff.length());
+            if (metrics != null) {
+              metrics.messageRead(received.address(), buff.length());
+            }
             parser.fixedSizeMode(4);
             size = -1;
             if (received.codec() == CodecManager.PING_MESSAGE_CODEC) {
@@ -347,10 +346,14 @@ public class ClusteredEventBus extends EventBusImpl {
       ClusterNodeInfo ci = subs.choose();
       ServerID sid = ci == null ? null : ci.serverID;
       if (sid != null && !sid.equals(serverID)) {  //We don't send to this node
-        metrics.messageSent(address, false, false, true);
+        if (metrics != null) {
+          metrics.messageSent(address, false, false, true);
+        }
         sendRemote(sid, sendContext.message);
       } else {
-        metrics.messageSent(address, false, true, false);
+        if (metrics != null) {
+          metrics.messageSent(address, false, true, false);
+        }
         deliverMessageLocally(sendContext);
       }
     } else {
@@ -365,7 +368,9 @@ public class ClusteredEventBus extends EventBusImpl {
           local = true;
         }
       }
-      metrics.messageSent(address, true, local, remote);
+      if (metrics != null) {
+        metrics.messageSent(address, true, local, remote);
+      }
       if (local) {
         deliverMessageLocally(sendContext);
       }
@@ -376,10 +381,14 @@ public class ClusteredEventBus extends EventBusImpl {
     MessageImpl message = sendContext.message;
     String address = message.address();
     if (!replyDest.equals(serverID)) {
-      metrics.messageSent(address, false, false, true);
+      if (metrics != null) {
+        metrics.messageSent(address, false, false, true);
+      }
       sendRemote(replyDest, message);
     } else {
-      metrics.messageSent(address, false, true, false);
+      if (metrics != null) {
+        metrics.messageSent(address, false, true, false);
+      }
       deliverMessageLocally(sendContext);
     }
   }

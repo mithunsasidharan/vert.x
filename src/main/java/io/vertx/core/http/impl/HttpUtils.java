@@ -1,21 +1,19 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
+
 package io.vertx.core.http.impl;
 
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.compression.ZlibWrapper;
 import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -31,16 +29,12 @@ import io.vertx.core.http.HttpServerRequest;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
-import static io.vertx.core.http.Http2Settings.DEFAULT_ENABLE_PUSH;
-import static io.vertx.core.http.Http2Settings.DEFAULT_HEADER_TABLE_SIZE;
-import static io.vertx.core.http.Http2Settings.DEFAULT_INITIAL_WINDOW_SIZE;
-import static io.vertx.core.http.Http2Settings.DEFAULT_MAX_CONCURRENT_STREAMS;
-import static io.vertx.core.http.Http2Settings.DEFAULT_MAX_FRAME_SIZE;
-import static io.vertx.core.http.Http2Settings.DEFAULT_MAX_HEADER_LIST_SIZE;
+import static io.vertx.core.http.Http2Settings.*;
 
 /**
  * Various http utils.
@@ -176,19 +170,19 @@ public final class HttpUtils {
       scheme = _ref.getScheme();
       authority = _ref.getAuthority();
       path = removeDots(_ref.getPath());
-      query = _ref.getQuery();
+      query = _ref.getRawQuery();
     } else {
       if (_ref.getAuthority() != null) {
         authority = _ref.getAuthority();
         path = _ref.getPath();
-        query = _ref.getQuery();
+        query = _ref.getRawQuery();
       } else {
         if (_ref.getPath().length() == 0) {
           path = base.getPath();
-          if (_ref.getQuery() != null) {
-            query = _ref.getQuery();
+          if (_ref.getRawQuery() != null) {
+            query = _ref.getRawQuery();
           } else {
-            query = base.getQuery();
+            query = base.getRawQuery();
           }
         } else {
           if (_ref.getPath().startsWith("/")) {
@@ -209,7 +203,7 @@ public final class HttpUtils {
             }
             path = removeDots(mergedPath);
           }
-          query = _ref.getQuery();
+          query = _ref.getRawQuery();
         }
         authority = base.getAuthority();
       }
@@ -385,6 +379,16 @@ public final class HttpUtils {
     return null;
   }
 
+  public static ByteBuf generateWSCloseFrameByteBuf(short statusCode, String reason) {
+    if (reason != null)
+      return Unpooled.copiedBuffer(
+        Unpooled.copyShort(statusCode), // First two bytes are reserved for status code
+        Unpooled.copiedBuffer(reason, Charset.forName("UTF-8"))
+      );
+    else
+      return Unpooled.copyShort(statusCode);
+  }
+
   private static class CustomCompressor extends HttpContentCompressor {
     @Override
     public ZlibWrapper determineWrapper(String acceptEncoding) {
@@ -454,6 +458,16 @@ public final class HttpUtils {
       }
       default:
         throw new IllegalArgumentException("Unsupported HTTP version: " + version);
+    }
+  }
+
+  static io.vertx.core.http.HttpVersion toVertxHttpVersion(HttpVersion version) {
+    if (version == io.netty.handler.codec.http.HttpVersion.HTTP_1_0) {
+      return io.vertx.core.http.HttpVersion.HTTP_1_0;
+    } else if (version == io.netty.handler.codec.http.HttpVersion.HTTP_1_1) {
+      return io.vertx.core.http.HttpVersion.HTTP_1_1;
+    } else {
+      return null;
     }
   }
 

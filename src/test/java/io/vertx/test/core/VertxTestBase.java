@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2014 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.test.core;
@@ -26,8 +21,8 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
-import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.KeyCertOptions;
+import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PfxOptions;
 import io.vertx.core.net.TCPSSLOptions;
 import io.vertx.core.spi.cluster.ClusterManager;
@@ -46,6 +41,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class VertxTestBase extends AsyncTestBase {
 
+  public static final boolean USE_NATIVE_TRANSPORT = Boolean.getBoolean("vertx.useNativeTransport");
+  public static final boolean USE_DOMAIN_SOCKETS = Boolean.getBoolean("vertx.useDomainSockets");
   private static final Logger log = LoggerFactory.getLogger(VertxTestBase.class);
 
   @Rule
@@ -66,35 +63,42 @@ public class VertxTestBase extends AsyncTestBase {
   public void setUp() throws Exception {
     super.setUp();
     vinit();
-    vertx = Vertx.vertx(getOptions());
+    VertxOptions options = getOptions();
+    boolean nativeTransport = options.getPreferNativeTransport();
+    vertx = Vertx.vertx(options);
+    if (nativeTransport) {
+      assertTrue(vertx.isNativeTransportEnabled());
+    }
   }
 
   protected VertxOptions getOptions() {
-    return new VertxOptions();
+    VertxOptions options = new VertxOptions();
+    options.setPreferNativeTransport(USE_NATIVE_TRANSPORT);
+    return options;
   }
 
   protected void tearDown() throws Exception {
     if (vertx != null) {
-      CountDownLatch latch = new CountDownLatch(1);
-      vertx.close(ar -> {
-        latch.countDown();
-      });
-      awaitLatch(latch);
+      close(vertx);
     }
     if (created != null) {
-      CountDownLatch latch = new CountDownLatch(created.size());
-      for (Vertx v : created) {
-        v.close(ar -> {
-          if (ar.failed()) {
-            log.error("Failed to shutdown vert.x", ar.cause());
-          }
-          latch.countDown();
-        });
-      }
-      assertTrue(latch.await(180, TimeUnit.SECONDS));
+      closeClustered(created);
     }
     FakeClusterManager.reset(); // Bit ugly
     super.tearDown();
+  }
+
+  protected void closeClustered(List<Vertx> clustered) throws Exception {
+    CountDownLatch latch = new CountDownLatch(clustered.size());
+    for (Vertx clusteredVertx : clustered) {
+      clusteredVertx.close(ar -> {
+        if (ar.failed()) {
+          log.error("Failed to shutdown vert.x", ar.cause());
+        }
+        latch.countDown();
+      });
+    }
+    assertTrue(latch.await(180, TimeUnit.SECONDS));
   }
 
   /**

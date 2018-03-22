@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- *  ------------------------------------------------------
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *      The Eclipse Public License is available at
- *      http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *      The Apache License v2.0 is available at
- *      http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.test.core;
@@ -719,13 +714,13 @@ public class MetricsContextTest extends VertxTestBase {
     testDatagram(workerContextFactory, workerChecker);
   }
 
-  private void testDatagram(Function<Vertx, Context> contextFactory, BiConsumer<Thread, Context> checker) {
+  private void testDatagram(Function<Vertx, Context> contextFactory, BiConsumer<Thread, Context> checker) throws Exception {
     AtomicReference<Thread> expectedThread = new AtomicReference<>();
     AtomicReference<Context> expectedContext = new AtomicReference<>();
     AtomicBoolean listening = new AtomicBoolean();
     AtomicBoolean bytesReadCalled = new AtomicBoolean();
     AtomicBoolean bytesWrittenCalled = new AtomicBoolean();
-    AtomicBoolean closeCalled = new AtomicBoolean();
+    CountDownLatch closeCalled = new CountDownLatch(1);
     VertxMetricsFactory factory = (vertx, options) -> new DummyVertxMetrics() {
       @Override
       public DatagramSocketMetrics createMetrics(DatagramSocket socket, DatagramSocketOptions options) {
@@ -747,7 +742,7 @@ public class MetricsContextTest extends VertxTestBase {
           }
           @Override
           public void close() {
-            closeCalled.set(true);
+            closeCalled.countDown();
           }
           @Override
           public boolean isEnabled() {
@@ -769,20 +764,14 @@ public class MetricsContextTest extends VertxTestBase {
           assertTrue(listening.get());
           assertTrue(bytesReadCalled.get());
           assertTrue(bytesWrittenCalled.get());
-          executeInVanillaThread(() -> {
-            socket.close(ar2 -> {
-              assertTrue(closeCalled.get());
-              assertTrue(ar2.succeeded());
-              testComplete();
-            });
-          });
+          executeInVanillaThread(socket::close);
         });
         socket.send(Buffer.buffer("msg"), 1234, "localhost", ar2 -> {
           assertTrue(ar2.succeeded());
         });
       });
     });
-    await();
+    awaitLatch(closeCalled);
   }
 
   @Test

@@ -1,17 +1,12 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *  The Eclipse Public License is available at
- *  http://www.eclipse.org/legal/epl-v10.html
- *
- *  The Apache License v2.0 is available at
- *  http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.test.core;
@@ -19,6 +14,7 @@ package io.vertx.test.core;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -31,6 +27,7 @@ import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.impl.ContextInternal;
+import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
 import org.junit.Test;
@@ -64,7 +61,7 @@ public class EventLoopGroupTest extends VertxTestBase {
     awaitLatch(latch);
     ServerBootstrap bs = new ServerBootstrap();
     bs.group(context.nettyEventLoop());
-    bs.channel(NioServerSocketChannel.class);
+    bs.channel(((VertxInternal)vertx).transport().serverChannelType(false)) ;
     bs.option(ChannelOption.SO_BACKLOG, 100);
     bs.childHandler(new ChannelInitializer<SocketChannel>() {
       @Override
@@ -118,12 +115,17 @@ public class EventLoopGroupTest extends VertxTestBase {
         });
       }
     });
-    bs.bind("localhost", 1234).sync();
-    vertx.createNetClient(new NetClientOptions()).connect(1234, "localhost", ar -> {
-      assertTrue(ar.succeeded());
-      NetSocket so = ar.result();
-      so.write(Buffer.buffer("hello"));
-    });
-    await();
+    ChannelFuture fut = bs.bind("localhost", 1234);
+    try {
+      fut.sync();
+      vertx.createNetClient(new NetClientOptions()).connect(1234, "localhost", ar -> {
+        assertTrue(ar.succeeded());
+        NetSocket so = ar.result();
+        so.write(Buffer.buffer("hello"));
+      });
+      await();
+    } finally {
+      fut.channel().close().sync();
+    }
   }
 }

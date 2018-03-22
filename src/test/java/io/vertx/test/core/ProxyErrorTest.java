@@ -1,10 +1,23 @@
+/*
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+
 package io.vertx.test.core;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.CountDownLatch;
 
 import org.junit.Test;
 
 import io.vertx.core.Handler;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientResponse;
@@ -12,8 +25,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.ProxyOptions;
 import io.vertx.core.net.ProxyType;
-import io.vertx.test.core.HttpProxy;
-import io.vertx.test.core.VertxTestBase;
+import io.vertx.test.fakedns.FakeDNSServer;
 
 /**
  * Test all kinds of errors raised by the proxy
@@ -27,6 +39,36 @@ public class ProxyErrorTest extends VertxTestBase {
 
   private HttpProxy proxy = null;
 
+  private FakeDNSServer dnsServer;
+  private InetSocketAddress dnsServerAddress;
+
+  @Override
+  public void setUp() throws Exception {
+    dnsServer = FakeDNSServer.testLookupNonExisting();
+    dnsServer.start();
+    dnsServerAddress = dnsServer.localAddress();
+    super.setUp();
+  }
+
+  @Override
+  protected void tearDown() throws Exception {
+    if (dnsServer.isStarted()) {
+      dnsServer.stop();
+    }
+    if (proxy!=null) {
+      proxy.stop();
+    }
+    super.tearDown();
+  }
+
+  @Override
+  protected VertxOptions getOptions() {
+    VertxOptions options = super.getOptions();
+    options.getAddressResolverOptions().addServer(dnsServerAddress.getAddress().getHostAddress() + ":" + dnsServerAddress.getPort());
+    options.getAddressResolverOptions().setOptResourceEnabled(false);
+    return options;
+  }
+
   // we don't start http/https servers, due to the error, they will not be queried
 
   private void startProxy(int error, String username) throws InterruptedException {
@@ -35,14 +77,6 @@ public class ProxyErrorTest extends VertxTestBase {
     proxy.setError(error);
     proxy.start(vertx, v -> latch.countDown());
     latch.await();
-  }
-
-  @Override
-  public void tearDown() throws Exception {
-    super.tearDown();
-    if (proxy!=null) {
-      proxy.stop();
-    }
   }
 
   @Test
@@ -106,7 +140,7 @@ public class ProxyErrorTest extends VertxTestBase {
     client.getAbs(url, assertResponse)
     .exceptionHandler(e -> {
       if (completeOnException) {
-        testComplete(); 
+        testComplete();
       } else {
         fail(e);
       }

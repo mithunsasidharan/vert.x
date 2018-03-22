@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2014 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.net.impl;
@@ -33,6 +28,7 @@ import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetServerOptions;
 import io.vertx.core.net.OpenSSLEngineOptions;
 import io.vertx.core.net.SSLEngineOptions;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.core.net.TCPSSLOptions;
 import io.vertx.core.net.TrustOptions;
 
@@ -45,6 +41,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -121,9 +118,6 @@ public class SSLHelper {
   }
 
   private static final Logger log = LoggerFactory.getLogger(SSLHelper.class);
-
-  // Make sure SSLv3 is NOT enabled due to POODLE vulnerability http://en.wikipedia.org/wiki/POODLE
-  private static final String[] DEFAULT_ENABLED_PROTOCOLS = {"SSLv2Hello", "TLSv1", "TLSv1.1", "TLSv1.2"};
 
   private boolean ssl;
   private boolean sni;
@@ -245,9 +239,8 @@ public class SSLHelper {
     If you don't specify a key store, and don't specify a system property no key store will be used
     You can override this by specifying the javax.echo.ssl.keyStore system property
      */
-  private SslContext createContext(VertxInternal vertx, X509KeyManager mgr) {
+  private SslContext createContext(VertxInternal vertx, X509KeyManager mgr, TrustManagerFactory trustMgrFactory) {
     try {
-      TrustManagerFactory trustMgrFactory = getTrustMgrFactory(vertx);
       SslContextBuilder builder;
       if (client) {
         builder = SslContextBuilder.forClient();
@@ -309,14 +302,30 @@ public class SSLHelper {
     return keyCertOptions == null ? null : keyCertOptions.getKeyManagerFactory(vertx);
   }
 
-  private TrustManagerFactory getTrustMgrFactory(VertxInternal vertx) throws Exception {
-    TrustManagerFactory fact;
+  private TrustManagerFactory getTrustMgrFactory(VertxInternal vertx, String serverName) throws Exception {
+    TrustManager[] mgrs = null;
     if (trustAll) {
-      TrustManager[] mgrs = new TrustManager[]{createTrustAllTrustManager()};
-      fact = new VertxTrustManagerFactory(mgrs);
+      mgrs = new TrustManager[]{createTrustAllTrustManager()};
     } else if (trustOptions != null) {
-      fact = trustOptions.getTrustManagerFactory(vertx);
-    } else {
+      if (serverName != null) {
+        Function<String, TrustManager[]> mapper = trustOptions.trustManagerMapper(vertx);
+        if (mapper != null) {
+          mgrs = mapper.apply(serverName);
+        }
+        if (mgrs == null) {
+          TrustManagerFactory fact = trustOptions.getTrustManagerFactory(vertx);
+          if (fact != null) {
+            mgrs = fact.getTrustManagers();
+          }
+        }
+      } else {
+        TrustManagerFactory fact = trustOptions.getTrustManagerFactory(vertx);
+        if (fact != null) {
+          mgrs = fact.getTrustManagers();
+        }
+      }
+    }
+    if (mgrs == null) {
       return null;
     }
     if (crlPaths != null && crlValues != null && (crlPaths.size() > 0 || crlValues.size() > 0)) {
@@ -330,10 +339,9 @@ public class SSLHelper {
       for (Buffer crlValue : tmp.collect(Collectors.toList())) {
         crls.addAll(certificatefactory.generateCRLs(new ByteArrayInputStream(crlValue.getBytes())));
       }
-      TrustManager[] mgrs = createUntrustRevokedCertTrustManager(fact.getTrustManagers(), crls);
-      fact = new VertxTrustManagerFactory(mgrs);
+      mgrs = createUntrustRevokedCertTrustManager(mgrs, crls);
     }
-    return fact;
+    return new VertxTrustManagerFactory(mgrs);
   }
 
   /*
@@ -394,19 +402,16 @@ public class SSLHelper {
     };
   }
 
-  private void configureEngine(SSLEngine engine, boolean client, String serverName) {
+  public void configureEngine(SSLEngine engine, String serverName) {
     if (enabledCipherSuites != null && !enabledCipherSuites.isEmpty()) {
       String[] toUse = enabledCipherSuites.toArray(new String[enabledCipherSuites.size()]);
       engine.setEnabledCipherSuites(toUse);
     }
     engine.setUseClientMode(client);
-    Set<String> protocols = new LinkedHashSet<>(Arrays.asList(DEFAULT_ENABLED_PROTOCOLS));
-    protocols.retainAll(Arrays.asList(engine.getEnabledProtocols()));
-    if (enabledProtocols != null && !enabledProtocols.isEmpty() && !protocols.isEmpty()) {
-      protocols.retainAll(enabledProtocols);
-      if (protocols.isEmpty()) {
-        log.warn("no SSL/TLS protocols are enabled due to configuration restrictions");
-      }
+    Set<String> protocols = new LinkedHashSet<>(enabledProtocols);
+    protocols.retainAll(Arrays.asList(engine.getSupportedProtocols()));
+    if (protocols.isEmpty()) {
+      log.warn("no SSL/TLS protocols are enabled due to configuration restrictions");
     }
     engine.setEnabledProtocols(protocols.toArray(new String[protocols.size()]));
     if (!client) {
@@ -443,7 +448,13 @@ public class SSLHelper {
   public SslContext getContext(VertxInternal vertx, String serverName) {
     if (serverName == null) {
       if (sslContext == null) {
-        sslContext = createContext(vertx, null);
+        TrustManagerFactory trustMgrFactory = null;
+        try {
+          trustMgrFactory = getTrustMgrFactory(vertx, null);
+        } catch (Exception e) {
+          throw new VertxException(e);
+        }
+        sslContext = createContext(vertx, null, trustMgrFactory);
       }
       return sslContext;
     } else {
@@ -456,7 +467,12 @@ public class SSLHelper {
       if (mgr == null) {
         return sslContext;
       }
-      return sslContextMap.computeIfAbsent(mgr.getCertificateChain(null)[0], s -> createContext(vertx, mgr));
+      try {
+        TrustManagerFactory trustMgrFactory = getTrustMgrFactory(vertx, serverName);
+        return sslContextMap.computeIfAbsent(mgr.getCertificateChain(null)[0], s -> createContext(vertx, mgr, trustMgrFactory));
+      } catch (Exception e) {
+        throw new VertxException(e);
+      }
     }
   }
 
@@ -469,25 +485,37 @@ public class SSLHelper {
 
   public SSLEngine createEngine(SslContext sslContext) {
     SSLEngine engine = sslContext.newEngine(ByteBufAllocator.DEFAULT);
-    configureEngine(engine, false, null);
+    configureEngine(engine, null);
+    return engine;
+  }
+
+  public SSLEngine createEngine(VertxInternal vertx, SocketAddress socketAddress, String serverName) {
+    SslContext context = getContext(vertx, null);
+    SSLEngine engine;
+    if (socketAddress.path() != null) {
+      engine = context.newEngine(ByteBufAllocator.DEFAULT);
+    } else {
+      engine = context.newEngine(ByteBufAllocator.DEFAULT, socketAddress.host(), socketAddress.port());
+    }
+    configureEngine(engine, serverName);
     return engine;
   }
 
   public SSLEngine createEngine(VertxInternal vertx, String host, int port, String serverName) {
     SSLEngine engine = getContext(vertx, null).newEngine(ByteBufAllocator.DEFAULT, host, port);
-    configureEngine(engine, client, serverName);
+    configureEngine(engine, serverName);
     return engine;
   }
 
   public SSLEngine createEngine(VertxInternal vertx, String host, int port) {
     SSLEngine engine = getContext(vertx, null).newEngine(ByteBufAllocator.DEFAULT, host, port);
-    configureEngine(engine, client, null);
+    configureEngine(engine, null);
     return engine;
   }
 
   public SSLEngine createEngine(VertxInternal vertx) {
     SSLEngine engine = getContext(vertx, null).newEngine(ByteBufAllocator.DEFAULT);
-    configureEngine(engine, client, null);
+    configureEngine(engine, null);
     return engine;
   }
 }

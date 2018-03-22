@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
  * Red Hat licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -24,9 +24,9 @@ import io.vertx.core.json.JsonArray;
  *
  * NOTE: This class has been automatically generated from the {@link io.vertx.core.VertxOptions} original class using Vert.x codegen.
  */
-public class VertxOptionsConverter {
+ class VertxOptionsConverter {
 
-  public static void fromJson(JsonObject json, VertxOptions obj) {
+   static void fromJson(JsonObject json, VertxOptions obj) {
     if (json.getValue("addressResolverOptions") instanceof JsonObject) {
       obj.setAddressResolverOptions(new io.vertx.core.dns.AddressResolverOptions((JsonObject)json.getValue("addressResolverOptions")));
     }
@@ -81,6 +81,9 @@ public class VertxOptionsConverter {
     if (json.getValue("metricsOptions") instanceof JsonObject) {
       obj.setMetricsOptions(new io.vertx.core.metrics.MetricsOptions((JsonObject)json.getValue("metricsOptions")));
     }
+    if (json.getValue("preferNativeTransport") instanceof Boolean) {
+      obj.setPreferNativeTransport((Boolean)json.getValue("preferNativeTransport"));
+    }
     if (json.getValue("quorumSize") instanceof Number) {
       obj.setQuorumSize(((Number)json.getValue("quorumSize")).intValue());
     }
@@ -92,7 +95,7 @@ public class VertxOptionsConverter {
     }
   }
 
-  public static void toJson(VertxOptions obj, JsonObject json) {
+   static void toJson(VertxOptions obj, JsonObject json) {
     if (obj.getAddressResolverOptions() != null) {
       json.put("addressResolverOptions", obj.getAddressResolverOptions().toJson());
     }
@@ -123,6 +126,7 @@ public class VertxOptionsConverter {
     if (obj.getMetricsOptions() != null) {
       json.put("metricsOptions", obj.getMetricsOptions().toJson());
     }
+    json.put("preferNativeTransport", obj.getPreferNativeTransport());
     json.put("quorumSize", obj.getQuorumSize());
     json.put("warningExceptionTime", obj.getWarningExceptionTime());
     json.put("workerPoolSize", obj.getWorkerPoolSize());

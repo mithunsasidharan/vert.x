@@ -1,17 +1,12 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *  The Eclipse Public License is available at
- *  http://www.eclipse.org/legal/epl-v10.html
- *
- *  The Apache License v2.0 is available at
- *  http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 /**
@@ -28,9 +23,20 @@
  * {@link examples.DNSExamples#example1}
  * ----
  *
- * Be aware that you can pass in a varargs of InetSocketAddress arguments to specifiy more then one DNS Server to try
- * to query for DNS resolution. The DNS Servers will be queried in the same order as specified here. Where the next
- * will be used once the first produce an error while be used.
+ * You can also create the client with options and configure the query timeout.
+ *
+ * [source,$lang]
+ * ----
+ * {@link examples.DNSExamples#example1_}
+ * ----
+ *
+ * Creating the client with no arguments or omitting the server address will use the address of the server used internally
+ * for non blocking address resolution.
+ *
+ * [source,$lang]
+ * ----
+ * {@link examples.DNSExamples#example1__}
+ * ----
  *
  * === lookup
  *
@@ -198,8 +204,5 @@
  *
  * include::override/dns.adoc[]
  */
-@Document(fileName = "dns.adoc")
 package io.vertx.core.dns;
-
-import io.vertx.docgen.Document;
 

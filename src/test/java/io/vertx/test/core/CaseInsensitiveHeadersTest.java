@@ -1,7 +1,19 @@
+/*
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+
 package io.vertx.test.core;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.http.HttpHeaders;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -16,11 +28,15 @@ import static org.junit.Assert.*;
 
 public class CaseInsensitiveHeadersTest {
 
+  protected MultiMap newMultiMap() {
+    return new CaseInsensitiveHeaders();
+  }
+
   @Test
   public void testCaseInsensitiveHeaders()
       throws Exception {
 
-    MultiMap result = new CaseInsensitiveHeaders();
+    MultiMap result = newMultiMap();
 
     assertNotNull(result);
     assertTrue(result.isEmpty());
@@ -31,7 +47,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest1()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     HashMap<String, String> map = new HashMap<String, String>();
     map.put("a", "b");
 
@@ -46,7 +62,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest2()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     HashMap<String, String> map = new HashMap<String, String>();
     map.put("a", "b");
     map.put("c", "d");
@@ -57,7 +73,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest3()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     HashMap<String, String> map = new HashMap<String, String>();
     map.put("a", "b");
 
@@ -67,7 +83,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest4()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     Map<String, String> map = new HashMap<String, String>();
 
     assertEquals("", mmap.addAll(map).toString());
@@ -76,8 +92,8 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest5()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
-    MultiMap headers = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
+    MultiMap headers = newMultiMap();
 
     assertEquals("", mmap.addAll(headers).toString());
   }
@@ -85,7 +101,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest7()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     CharSequence name = "name";
     CharSequence value = "value";
 
@@ -95,7 +111,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest8()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     CharSequence name = "name";
     ArrayList<CharSequence> values = new ArrayList<CharSequence>();
     values.add("somevalue");
@@ -106,7 +122,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest9()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "";
     ArrayList<CharSequence> values = new ArrayList<CharSequence>();
     values.add("somevalue");
@@ -117,7 +133,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest10()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "a";
     ArrayList<CharSequence> values = new ArrayList<CharSequence>();
     values.add("somevalue");
@@ -128,7 +144,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest11()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "";
     String strVal = "";
 
@@ -138,7 +154,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest12()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "a";
     String strVal = "b";
 
@@ -148,7 +164,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest13()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "aaa";
     String strVal = "";
 
@@ -158,7 +174,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddTest14()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "";
     String strVal = "aaa";
 
@@ -168,7 +184,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddIterable()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "name";
     List<String> values = new ArrayList<String>();
     values.add("value1");
@@ -183,9 +199,9 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testAddMultiMap()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
 
-    MultiMap mm = new CaseInsensitiveHeaders();
+    MultiMap mm = newMultiMap();
     mm.add("Header1", "value1");
     mm.add("Header2", "value2");
 
@@ -198,7 +214,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testClearTest1()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
 
     MultiMap result = mmap.clear();
 
@@ -211,7 +227,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testContainsTest1()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     CharSequence name = String.valueOf(new Object());
 
     assertFalse(mmap.contains(name));
@@ -220,7 +236,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testContainsTest2()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "";
 
     assertFalse(mmap.contains(name));
@@ -229,7 +245,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testContainsTest3()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "0123456789";
 
     boolean result = mmap.contains(name);
@@ -243,7 +259,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testEntriesTest1()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
 
     List<Map.Entry<String, String>> result = mmap.entries();
 
@@ -254,7 +270,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testGetTest1()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     CharSequence name = String.valueOf(new Object());
 
     assertNull(mmap.get(name));
@@ -263,7 +279,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testGetTest2()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "1";
 
     assertNull(mmap.get(name));
@@ -272,7 +288,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testGetTest3()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "name";
 
     String result = mmap.get(name);
@@ -290,7 +306,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testGetAllTest1()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     CharSequence name = String.valueOf(new Object());
 
     List<String> result = mmap.getAll(name);
@@ -302,7 +318,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testGetAllTest2()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "1";
 
     List<String> result = mmap.getAll(name);
@@ -314,7 +330,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testGetAllTest3()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "name";
 
     List<String> result = mmap.getAll(name);
@@ -326,7 +342,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testGetAll()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "name";
     mmap.add(name, "value1");
     mmap.add(name, "value2");
@@ -347,7 +363,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testIsEmptyTest1()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
 
     assertTrue(mmap.isEmpty());
   }
@@ -355,7 +371,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testIsEmptyTest2()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     mmap.add("a", "b");
 
     assertFalse(mmap.isEmpty());
@@ -364,7 +380,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testIteratorTest1()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
 
     Iterator<Map.Entry<String, String>> result = mmap.iterator();
 
@@ -375,7 +391,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testIteratorTest2()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     mmap.add("a", "b");
 
     Iterator<Map.Entry<String, String>> result = mmap.iterator();
@@ -387,7 +403,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testNamesTest1()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
 
     Set<String> result = mmap.names();
 
@@ -398,7 +414,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testRemoveTest1()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     CharSequence name = String.valueOf(new Object());
 
     MultiMap result = mmap.remove(name);
@@ -417,7 +433,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testRemoveTest2()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "1";
 
     MultiMap result = mmap.remove(name);
@@ -430,7 +446,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testRemoveTest3()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "name";
 
     MultiMap result = mmap.remove(name);
@@ -443,7 +459,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testRemoveTest4()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "name";
     String value = "value";
     mmap.add(name, value);
@@ -458,7 +474,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest1()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     HashMap<String, String> headers = new HashMap<String, String>();
     headers.put("", "");
 
@@ -473,7 +489,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest2()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     HashMap<String, String> headers = new HashMap<String, String>();
     headers.put("", "");
     headers.put("aaa", "bbb");
@@ -489,7 +505,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest3()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     HashMap<String, String> headers = new HashMap<String, String>();
     headers.put("aaa", "bbb");
 
@@ -504,7 +520,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest4()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     Map<String, String> headers = new HashMap<String, String>();
 
     MultiMap result = mmap.setAll(headers);
@@ -518,8 +534,8 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest5()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
-    MultiMap headers = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
+    MultiMap headers = newMultiMap();
 
     MultiMap result = mmap.setAll(headers);
 
@@ -532,7 +548,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest7()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     CharSequence name = "name";
     CharSequence value = "value";
 
@@ -547,7 +563,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest8()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     CharSequence name = "name";
     ArrayList<CharSequence> values = new ArrayList<CharSequence>();
     values.add("somevalue");
@@ -558,7 +574,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest9()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "";
     ArrayList<CharSequence> values = new ArrayList<CharSequence>();
     values.add("somevalue");
@@ -569,7 +585,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest10()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "aaa";
     ArrayList<CharSequence> values = new ArrayList<CharSequence>();
     values.add("somevalue");
@@ -580,7 +596,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest11()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "";
     String strVal = "";
 
@@ -595,7 +611,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest12()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "aaa";
     String strVal = "bbb";
 
@@ -610,7 +626,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest13()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "aaa";
     String strVal = "";
 
@@ -625,7 +641,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetTest14()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
     String name = "";
     String strVal = "bbb";
 
@@ -646,7 +662,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetIterableEmpty()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
 
     String name = "name";
     List<String> values = new ArrayList<String>();
@@ -662,7 +678,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSetIterable()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
 
     String name = "name";
     List<String> values = new ArrayList<String>();
@@ -680,7 +696,7 @@ public class CaseInsensitiveHeadersTest {
   @Test
   public void testSize()
       throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
 
     assertEquals(0, mmap.size());
     mmap.add("header", "value");
@@ -693,7 +709,7 @@ public class CaseInsensitiveHeadersTest {
 
   @Test
   public void testGetHashColl() {
-    MultiMap mm = new CaseInsensitiveHeaders();
+    MultiMap mm = newMultiMap();
     String name1 = "!~AZ";
     String name2 = "!~\u0080Y";
     mm.add(name1, "value1");
@@ -754,7 +770,7 @@ public class CaseInsensitiveHeadersTest {
 
   @Test
   public void testGetAllHashColl() {
-    MultiMap mm = new CaseInsensitiveHeaders();
+    MultiMap mm = newMultiMap();
     String name1 = "AZ";
     String name2 = "\u0080Y";
     assertTrue("hash error", hash(name1) == hash(name2));
@@ -777,7 +793,7 @@ public class CaseInsensitiveHeadersTest {
 
   @Test
   public void testRemoveHashColl() {
-    MultiMap mm = new CaseInsensitiveHeaders();
+    MultiMap mm = newMultiMap();
     String name1 = "AZ";
     String name2 = "\u0080Y";
     String name3 = "RZ";
@@ -836,7 +852,7 @@ public class CaseInsensitiveHeadersTest {
   // MIN_VALUE in int representation
   @Test
   public void testHashMININT() {
-    CaseInsensitiveHeaders mm = new CaseInsensitiveHeaders();
+    MultiMap mm = newMultiMap();
     String name1 = "";
     long value = Integer.MAX_VALUE;
     value++;
@@ -872,7 +888,7 @@ public class CaseInsensitiveHeadersTest {
 
   @Test
   public void testToString() {
-    MultiMap mm = new CaseInsensitiveHeaders();
+    MultiMap mm = newMultiMap();
     assertEquals("", mm.toString());
     mm.add("Header1", "Value1");
     assertEquals("Header1: Value1\n",
@@ -901,7 +917,7 @@ public class CaseInsensitiveHeadersTest {
 
   @Test
   public void testMapEntrySetValue() throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
 
     mmap.add("Header", "oldvalue");
 
@@ -913,7 +929,7 @@ public class CaseInsensitiveHeadersTest {
 
   @Test
   public void testMapEntryToString() throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
 
     mmap.add("Header", "value");
 
@@ -922,12 +938,58 @@ public class CaseInsensitiveHeadersTest {
 
   @Test(expected = NullPointerException.class)
   public void testMapEntrySetValueNull() throws Exception {
-    MultiMap mmap = new CaseInsensitiveHeaders();
+    MultiMap mmap = newMultiMap();
 
     mmap.add("Header", "oldvalue");
 
     for (Map.Entry<String, String> me:mmap) {
       me.setValue(null);
     }
+  }
+
+  @Test
+  public void testContainsValueString() {
+    MultiMap mmap = newMultiMap();
+
+    mmap.add("headeR", "vAlue");
+
+    assertTrue(mmap.contains("heaDer", "vAlue", false));
+    assertFalse(mmap.contains("heaDer", "Value", false));
+  }
+
+  @Test
+  public void testContainsValueStringIgnoreCase() {
+    MultiMap mmap = newMultiMap();
+
+    mmap.add("headeR", "vAlue");
+
+    assertTrue(mmap.contains("heaDer", "vAlue", true));
+    assertTrue(mmap.contains("heaDer", "Value", true));
+  }
+
+  @Test
+  public void testContainsValueCharSequence() {
+    MultiMap mmap = newMultiMap();
+
+    mmap.add("headeR", "vAlue");
+
+    CharSequence name = HttpHeaders.createOptimized("heaDer");
+    CharSequence vAlue = HttpHeaders.createOptimized("vAlue");
+    CharSequence Value = HttpHeaders.createOptimized("Value");
+    assertTrue(mmap.contains(name, vAlue, false));
+    assertFalse(mmap.contains(name, Value, false));
+  }
+
+  @Test
+  public void testContainsValueCharSequenceIgnoreCase() {
+    MultiMap mmap = newMultiMap();
+
+    mmap.add("headeR", "vAlue");
+
+    CharSequence name = HttpHeaders.createOptimized("heaDer");
+    CharSequence vAlue = HttpHeaders.createOptimized("vAlue");
+    CharSequence Value = HttpHeaders.createOptimized("Value");
+    assertTrue(mmap.contains(name, vAlue, true));
+    assertTrue(mmap.contains(name, Value, true));
   }
 }

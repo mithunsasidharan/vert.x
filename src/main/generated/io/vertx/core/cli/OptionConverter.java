@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
  * Red Hat licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -24,17 +24,19 @@ import io.vertx.core.json.JsonArray;
  *
  * NOTE: This class has been automatically generated from the {@link io.vertx.core.cli.Option} original class using Vert.x codegen.
  */
-public class OptionConverter {
+ class OptionConverter {
 
-  public static void fromJson(JsonObject json, Option obj) {
+   static void fromJson(JsonObject json, Option obj) {
     if (json.getValue("argName") instanceof String) {
       obj.setArgName((String)json.getValue("argName"));
     }
     if (json.getValue("choices") instanceof JsonArray) {
-      json.getJsonArray("choices").forEach(item -> {
+      java.util.LinkedHashSet<java.lang.String> list = new java.util.LinkedHashSet<>();
+      json.getJsonArray("choices").forEach( item -> {
         if (item instanceof String)
-          obj.addChoice((String)item);
+          list.add((String)item);
       });
+      obj.setChoices(list);
     }
     if (json.getValue("defaultValue") instanceof String) {
       obj.setDefaultValue((String)json.getValue("defaultValue"));
@@ -68,7 +70,7 @@ public class OptionConverter {
     }
   }
 
-  public static void toJson(Option obj, JsonObject json) {
+   static void toJson(Option obj, JsonObject json) {
     if (obj.getArgName() != null) {
       json.put("argName", obj.getArgName());
     }

@@ -1,7 +1,17 @@
+/*
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+
 package io.vertx.core.eventbus.impl.clustered;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.EventBusOptions;
 import io.vertx.core.eventbus.impl.codecs.PingMessageCodec;
@@ -57,6 +67,7 @@ class ConnectionHolder {
       if (res.succeeded()) {
         connected(res.result());
       } else {
+        log.warn("Connecting to server " + serverID + " failed", res.cause());
         close();
       }
     });
@@ -66,10 +77,15 @@ class ConnectionHolder {
   synchronized void writeMessage(ClusteredMessage message) {
     if (connected) {
       Buffer data = message.encodeToWire();
-      metrics.messageWritten(message.address(), data.length());
+      if (metrics != null) {
+        metrics.messageWritten(message.address(), data.length());
+      }
       socket.write(data);
     } else {
       if (pending == null) {
+        if (log.isDebugEnabled()) {
+          log.debug("Not connected to server " + serverID + " - starting queuing");
+        }
         pending = new ArrayDeque<>();
       }
       pending.add(message);
@@ -90,7 +106,9 @@ class ConnectionHolder {
     // The holder can be null or different if the target server is restarted with same serverid
     // before the cleanup for the previous one has been processed
     if (eventBus.connections().remove(serverID, this)) {
-      log.debug("Cluster connection closed: " + serverID + " holder " + this);
+      if (log.isDebugEnabled()) {
+        log.debug("Cluster connection closed for server " + serverID);
+      }
     }
   }
 
@@ -122,12 +140,19 @@ class ConnectionHolder {
     });
     // Start a pinger
     schedulePing();
-    for (ClusteredMessage message : pending) {
-      Buffer data = message.encodeToWire();
-      metrics.messageWritten(message.address(), data.length());
-      socket.write(data);
+    if (pending != null) {
+      if (log.isDebugEnabled()) {
+        log.debug("Draining the queue for server " + serverID);
+      }
+      for (ClusteredMessage message : pending) {
+        Buffer data = message.encodeToWire();
+        if (metrics != null) {
+          metrics.messageWritten(message.address(), data.length());
+        }
+        socket.write(data);
+      }
     }
-    pending.clear();
+    pending = null;
   }
 
 }

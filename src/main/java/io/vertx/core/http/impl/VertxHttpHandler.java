@@ -1,18 +1,14 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
+
 package io.vertx.core.http.impl;
 
 import io.netty.buffer.ByteBuf;
@@ -43,45 +39,8 @@ public abstract class VertxHttpHandler<C extends ConnectionBase> extends VertxHa
     return safeBuffer(holder.content(), allocator);
   }
 
-  protected Map<Channel, C> connectionMap;
-  protected final Channel ch;
-  protected C conn;
-
-  protected VertxHttpHandler(Map<Channel, C> connectionMap, Channel ch) {
-    this.connectionMap = connectionMap;
-    this.ch = ch;
-  }
-
   @Override
-  protected C getConnection() {
-    return conn;
-  }
-
-  @Override
-  protected C removeConnection() {
-    connectionMap.remove(ch);
-    C conn = this.conn;
-    this.conn = null;
-    return conn;
-  }
-
-  @Override
-  protected void channelRead(final C connection, final ContextImpl context, final ChannelHandlerContext chctx, final Object msg) throws Exception {
-    if (connection != null) {
-      context.executeFromIO(() -> doMessageReceived(connection, chctx, msg));
-    } else {
-      // We execute this directly as we don't have a context yet, the context will have to be set manually
-      // inside doMessageReceived();
-      try {
-        doMessageReceived(null, chctx, msg);
-      } catch (Throwable t) {
-        chctx.pipeline().fireExceptionCaught(t);
-      }
-    }
-  }
-
-  @Override
-  protected Object safeObject(Object msg, ByteBufAllocator allocator) throws Exception {
+  protected Object decode(Object msg, ByteBufAllocator allocator) throws Exception {
     if (msg instanceof HttpContent) {
       HttpContent content = (HttpContent) msg;
       ByteBuf buf = content.content();
@@ -117,42 +76,5 @@ public abstract class VertxHttpHandler<C extends ConnectionBase> extends VertxHa
     }
     return msg;
   }
-
-
-  @Override
-  public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-    if (msg instanceof WebSocketFrameInternal) {
-      WebSocketFrameInternal frame = (WebSocketFrameInternal) msg;
-      ByteBuf buf = frame.getBinaryData();
-      if (buf != Unpooled.EMPTY_BUFFER) {
-         buf = safeBuffer(buf, ctx.alloc());
-      }
-      switch (frame.type()) {
-        case BINARY:
-          msg = new BinaryWebSocketFrame(frame.isFinal(), 0, buf);
-          break;
-        case TEXT:
-          msg = new TextWebSocketFrame(frame.isFinal(), 0, buf);
-          break;
-        case CLOSE:
-          msg = new CloseWebSocketFrame(true, 0, buf);
-          break;
-        case CONTINUATION:
-          msg = new ContinuationWebSocketFrame(frame.isFinal(), 0, buf);
-          break;
-        case PONG:
-          msg = new PongWebSocketFrame(buf);
-          break;
-        case PING:
-          msg = new PingWebSocketFrame(buf);
-          break;
-        default:
-          throw new IllegalStateException("Unsupported websocket msg " + msg);
-      }
-    }
-    ctx.write(msg, promise);
-  }
-
-  protected abstract void doMessageReceived(C connection, ChannelHandlerContext ctx, Object msg) throws Exception;
 
 }

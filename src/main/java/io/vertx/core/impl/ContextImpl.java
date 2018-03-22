@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.impl;
@@ -24,8 +19,6 @@ import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Starter;
-import io.vertx.core.Vertx;
-import io.vertx.core.WorkerExecutor;
 import io.vertx.core.impl.launcher.VertxCommandLauncher;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -33,8 +26,8 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.metrics.PoolMetrics;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
@@ -42,6 +35,15 @@ import java.util.concurrent.RejectedExecutionException;
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
 public abstract class ContextImpl implements ContextInternal {
+
+  private static EventLoop getEventLoop(VertxInternal vertx) {
+    EventLoopGroup group = vertx.getEventLoopGroup();
+    if (group != null) {
+      return group.next();
+    } else {
+      return null;
+    }
+  }
 
   private static final Logger log = LoggerFactory.getLogger(ContextImpl.class);
 
@@ -60,7 +62,7 @@ public abstract class ContextImpl implements ContextInternal {
   private final ClassLoader tccl;
   private final EventLoop eventLoop;
   protected VertxThread contextThread;
-  private Map<String, Object> contextData;
+  private ConcurrentMap<Object, Object> contextData;
   private volatile Handler<Throwable> exceptionHandler;
   protected final WorkerPool workerPool;
   protected final WorkerPool internalBlockingPool;
@@ -69,17 +71,17 @@ public abstract class ContextImpl implements ContextInternal {
 
   protected ContextImpl(VertxInternal vertx, WorkerPool internalBlockingPool, WorkerPool workerPool, String deploymentID, JsonObject config,
                         ClassLoader tccl) {
+    this(vertx, getEventLoop(vertx), internalBlockingPool, workerPool, deploymentID, config, tccl);
+  }
+
+  protected ContextImpl(VertxInternal vertx, EventLoop eventLoop, WorkerPool internalBlockingPool, WorkerPool workerPool, String deploymentID, JsonObject config,
+                        ClassLoader tccl) {
     if (DISABLE_TCCL && !tccl.getClass().getName().equals("sun.misc.Launcher$AppClassLoader")) {
       log.warn("You have disabled TCCL checks but you have a custom TCCL to set.");
     }
     this.deploymentID = deploymentID;
     this.config = config;
-    EventLoopGroup group = vertx.getEventLoopGroup();
-    if (group != null) {
-      this.eventLoop = group.next();
-    } else {
-      this.eventLoop = null;
-    }
+    this.eventLoop = eventLoop;
     this.tccl = tccl;
     this.owner = vertx;
     this.workerPool = workerPool;
@@ -226,7 +228,7 @@ public abstract class ContextImpl implements ContextInternal {
     return eventLoop;
   }
 
-  public Vertx owner() {
+  public VertxInternal owner() {
     return owner;
   }
 
@@ -301,7 +303,7 @@ public abstract class ContextImpl implements ContextInternal {
     }
   }
 
-  protected synchronized Map<String, Object> contextData() {
+  public synchronized ConcurrentMap<Object, Object> contextData() {
     if (contextData == null) {
       contextData = new ConcurrentHashMap<>();
     }

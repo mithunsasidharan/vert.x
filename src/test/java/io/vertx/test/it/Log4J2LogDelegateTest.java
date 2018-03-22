@@ -1,17 +1,12 @@
 /*
- *  Copyright (c) 2011-2015 The original author or authors
- *  ------------------------------------------------------
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *       The Eclipse Public License is available at
- *       http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *       The Apache License v2.0 is available at
- *       http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.test.it;
@@ -85,7 +80,8 @@ public class Log4J2LogDelegateTest {
     result = recording.execute(() -> {
       logger.info("hello {}", "vert.x");
     });
-    assertTrue(result.contains("hello vert.x"));
+    String expected = "hello vert.x";
+    assertTrue("Was expected <" + result + "> to contain <" + expected + ">" , result.contains(expected));
 
     result = recording.execute(() -> {
       logger.info("hello {} - {}", "vert.x");
@@ -93,9 +89,9 @@ public class Log4J2LogDelegateTest {
     assertTrue(result.contains("hello vert.x - {}"));
 
     result = recording.execute(() -> {
-      logger.info("hello {}", "vert.x", "foo");
+      logger.info("hello {} {}", "vert.x", "foo");
     });
-    assertTrue(result.contains("hello [vert.x, foo]"));
+    assertTrue(result.contains("hello vert.x foo"));
 
     result = recording.execute(() -> {
       logger.info("{}, an exception has been thrown", new IllegalStateException(), "Luke");
@@ -139,9 +135,10 @@ public class Log4J2LogDelegateTest {
     assertTrue(result.contains("hello vert.x - {}"));
 
     result = recording.execute(() -> {
-      logger.error("hello {}", "vert.x", "foo");
+      logger.error("hello {} {}", "vert.x", "foo");
     });
-    assertTrue(result.contains("hello [vert.x, foo]"));
+    String expected = "hello vert.x foo";
+    assertTrue("Was expected <" + result + "> to contain <" + expected + ">" , result.contains(expected));
 
     result = recording.execute(() -> {
       logger.error("{}, an exception has been thrown", new IllegalStateException(), "Luke");
@@ -185,9 +182,10 @@ public class Log4J2LogDelegateTest {
     assertTrue(result.contains("hello vert.x - {}"));
 
     result = recording.execute(() -> {
-      logger.warn("hello {}", "vert.x", "foo");
+      logger.warn("hello {} {}", "vert.x", "foo");
     });
-    assertTrue(result.contains("hello [vert.x, foo]"));
+    String expected = "hello vert.x foo";
+    assertTrue("Was expected <" + result + "> to contain <" + expected + ">" , result.contains(expected));
 
     result = recording.execute(() -> {
       logger.warn("{}, an exception has been thrown", new IllegalStateException(), "Luke");
@@ -215,5 +213,5 @@ public class Log4J2LogDelegateTest {
     });
     assertTrue(result.contains(".run:"));
   }
-  
+
 }

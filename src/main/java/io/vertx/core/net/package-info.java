@@ -1,17 +1,12 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *  The Eclipse Public License is available at
- *  http://www.eclipse.org/legal/epl-v10.html
- *
- *  The Apache License v2.0 is available at
- *  http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 /**
@@ -135,6 +130,10 @@
  * You can set an {@link io.vertx.core.net.NetSocket#exceptionHandler(io.vertx.core.Handler)} to receive any
  * exceptions that happen on the socket.
  *
+ * You can set an {@link io.vertx.core.net.NetServer#exceptionHandler(io.vertx.core.Handler)} to receive any
+ * exceptions that happens before the connection is passed to the {@link io.vertx.core.net.NetServer#connectHandler(io.vertx.core.Handler)}
+ * , e.g during the TLS handshake.
+ *
  * === Event bus write handler
  *
  * Every socket automatically registers a handler on the event bus, and when any buffers are received in this handler,
@@ -156,8 +155,8 @@
  *
  * Files and classpath resources can be written to the socket directly using {@link io.vertx.core.net.NetSocket#sendFile}. This can be a very
  * efficient way to send files, as it can be handled by the OS kernel directly where supported by the operating system.
- * 
- * Please see the chapter about <<classpath, serving files from the classpath>> for restrictions of the 
+ *
+ * Please see the chapter about <<classpath, serving files from the classpath>> for restrictions of the
  * classpath resolution or disabling it.
  *
  * [source,$lang]
@@ -385,7 +384,9 @@
  * {@link examples.NetExamples#example22}
  * ----
  *
- * Keep in mind that pem configuration, the private key is not crypted.
+ * PKCS8, PKCS1 and X.509 certificates wrapped in a PEM block formats are supported.
+ *
+ * WARNING: keep in mind that pem configuration, the private key is not crypted.
  *
  * ==== Specifying trust for the server
  *
@@ -659,15 +660,24 @@
  *
  * ==== Server Name Indication (SNI)
  *
- * Server Name Indication (SNI) is a TLS extension by which a client specifies an hostname attempting to connect: during
- * the TLS handshake the clients gives a server name and the server can use it to respond with a specific certificate
+ * Server Name Indication (SNI) is a TLS extension by which a client specifies a hostname attempting to connect: during
+ * the TLS handshake the client gives a server name and the server can use it to respond with a specific certificate
  * for this server name instead of the default deployed certificate.
+ * If the server requires client authentication the server can use a specific trusted CA certificate depending on the
+ * indicated server name.
  *
  * When SNI is active the server uses
  *
  * * the certificate CN or SAN DNS (Subject Alternative Name with DNS) to do an exact match, e.g `www.example.com`
  * * the certificate CN or SAN DNS certificate to match a wildcard name, e.g `*.example.com`
- * * otherwise the first certificate when the client does not present a server name or the presenter server name cannot be matched
+ * * otherwise the first certificate when the client does not present a server name or the presented server name cannot be matched
+ *
+ * When the server additionally requires client authentication:
+ *
+ * * if {@link io.vertx.core.net.JksOptions} were used to set the trust options
+ *  ({@link io.vertx.core.net.NetServerOptions#setTrustOptions options}) then an exact match with the trust store
+ *  alias is done
+ * * otherwise the available CA certificates are used in the same way as if no SNI is in place
  *
  * You can enable SNI on the server by setting {@link io.vertx.core.net.NetServerOptions#setSni(boolean)} to `true` and
  * configured the server with multiple key/certificate pairs.
@@ -706,6 +716,8 @@
  * Application-Layer Protocol Negotiation (ALPN) is a TLS extension for application layer protocol negotiation. It is used by
  * HTTP/2: during the TLS handshake the client gives the list of application protocols it accepts and the server responds
  * with a protocol it supports.
+ *
+ * If you are using Java 9, you are fine and you can use HTTP/2 out of the box without extra steps.
  *
  * Java 8 does not supports ALPN out of the box, so ALPN should be enabled by other means:
  *
@@ -767,8 +779,5 @@
  * The DNS resolution is always done on the proxy server, to achieve the functionality of a SOCKS4 client, it is necessary
  * to resolve the DNS address locally.
  */
-@Document(fileName = "net.adoc")
 package io.vertx.core.net;
-
-import io.vertx.docgen.Document;
 

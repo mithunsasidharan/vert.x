@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2014 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core;
@@ -19,6 +14,7 @@ package io.vertx.core;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.dns.AddressResolverOptions;
 import io.vertx.core.eventbus.EventBusOptions;
+import io.vertx.core.impl.cpu.CpuCoreSensor;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.metrics.MetricsOptions;
 import io.vertx.core.spi.cluster.ClusterManager;
@@ -32,13 +28,13 @@ import static io.vertx.core.impl.FileResolver.DISABLE_FILE_CACHING_PROP_NAME;
  *
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
-@DataObject(generateConverter = true)
+@DataObject(generateConverter = true, publicConverter = false)
 public class VertxOptions {
 
   /**
    * The default number of event loop threads to be used  = 2 * number of cores on the machine
    */
-  public static final int DEFAULT_EVENT_LOOP_POOL_SIZE = 2 * Runtime.getRuntime().availableProcessors();
+  public static final int DEFAULT_EVENT_LOOP_POOL_SIZE = 2 * CpuCoreSensor.availableProcessors();
 
   /**
    * The default number of threads in the worker pool = 20
@@ -121,6 +117,11 @@ public class VertxOptions {
   public static final boolean DEFAULT_FILE_CACHING_ENABLED = !Boolean.getBoolean(DISABLE_FILE_CACHING_PROP_NAME);
 
   /**
+   * The default value for preferring native transport = false
+   */
+  public static final boolean DEFAULT_PREFER_NATIVE_TRANSPORT = false;
+
+  /**
    * The default value of warning exception time 5000000000 ns (5 seconds)
    * If a thread is blocked longer than this threshold, the warning log
    * contains a stack trace
@@ -142,6 +143,7 @@ public class VertxOptions {
   private EventBusOptions eventBusOptions = new EventBusOptions();
   private AddressResolverOptions addressResolverOptions = new AddressResolverOptions();
   private boolean fileResolverCachingEnabled = DEFAULT_FILE_CACHING_ENABLED;
+  private boolean preferNativeTransport = DEFAULT_PREFER_NATIVE_TRANSPORT;
 
   /**
    * Default constructor
@@ -673,6 +675,24 @@ public class VertxOptions {
     return this;
   }
 
+  /**
+   * @return wether to prefer the native transport to the JDK transport
+   */
+  public boolean getPreferNativeTransport() {
+    return preferNativeTransport;
+  }
+
+  /**
+   * Set wether to prefer the native transport to the JDK transport.
+   *
+   * @param preferNativeTransport {@code true} to prefer the native transport
+   * @return a reference to this, so the API can be used fluently
+   */
+  public VertxOptions setPreferNativeTransport(boolean preferNativeTransport) {
+    this.preferNativeTransport = preferNativeTransport;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -697,6 +717,7 @@ public class VertxOptions {
     if (addressResolverOptions != null ? !addressResolverOptions.equals(that.addressResolverOptions) : that.addressResolverOptions != null)
       return false;
     if (fileResolverCachingEnabled != that.fileResolverCachingEnabled) return false;
+    if (preferNativeTransport != that.preferNativeTransport) return false;
     return !(metricsOptions != null ? !metricsOptions.equals(that.metricsOptions) : that.metricsOptions != null);
   }
 
@@ -711,6 +732,7 @@ public class VertxOptions {
     result = 31 * result + (clusterManager != null ? clusterManager.hashCode() : 0);
     result = 31 * result + (haEnabled ? 1 : 0);
     result = 31 * result + (fileResolverCachingEnabled ? 1 : 0);
+    result = 31 * result + (preferNativeTransport ? 1 : 0);
     result = 31 * result + quorumSize;
     result = 31 * result + (haGroup != null ? haGroup.hashCode() : 0);
     result = 31 * result + (metricsOptions != null ? metricsOptions.hashCode() : 0);
@@ -732,9 +754,11 @@ public class VertxOptions {
         ", clusterManager=" + clusterManager +
         ", haEnabled=" + haEnabled +
         ", fileCachingEnabled=" + fileResolverCachingEnabled +
+        ", preferNativeTransport=" + preferNativeTransport +
         ", quorumSize=" + quorumSize +
         ", haGroup='" + haGroup + '\'' +
         ", metrics=" + metricsOptions +
+        ", addressResolver=" + addressResolverOptions.toJson() +
         ", addressResolver=" + addressResolverOptions.toJson() +
         ", eventbus=" + eventBusOptions.toJson() +
         ", warningExceptionTime=" + warningExceptionTime +

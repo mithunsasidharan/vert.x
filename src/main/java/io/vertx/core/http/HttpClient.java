@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.http;
@@ -1049,6 +1044,21 @@ public interface HttpClient extends Measured {
                        String subProtocols, Handler<WebSocket> wsConnect);
 
   /**
+   * Connect a WebSocket with the specified absolute url, with the specified headers, using
+   * the specified version of WebSockets, and the specified websocket sub protocols.
+   *
+   * @param url            the absolute url
+   * @param headers        the headers
+   * @param version        the websocket version
+   * @param subProtocols   the subprotocols to use
+   * @param wsConnect      handler that will be called with the websocket when connected
+   * @param failureHandler handler that will be called if websocket connection fails
+   * @return a reference to this, so the API can be used fluently
+   */
+  @Fluent
+  HttpClient websocketAbs(String url, MultiMap headers, WebsocketVersion version, String subProtocols, Handler<WebSocket> wsConnect, Handler<Throwable> failureHandler);
+
+  /**
    * Connect a WebSocket with the specified options, with the specified headers, using
    * the specified version of WebSockets, and the specified websocket sub protocols
    * @param options  the request options
@@ -1212,7 +1222,7 @@ public interface HttpClient extends Measured {
   /**
    * Create a WebSocket stream with the specified options
    * @param options  the request options
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(RequestOptions options);
 
@@ -1221,7 +1231,7 @@ public interface HttpClient extends Measured {
    * @param port  the port
    * @param host  the host
    * @param requestURI  the relative URI
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(int port, String host, String requestURI);
 
@@ -1229,7 +1239,7 @@ public interface HttpClient extends Measured {
    * Create a WebSocket stream to the specified host, relative request URI and default port
    * @param host  the host
    * @param requestURI  the relative URI
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(String host, String requestURI);
 
@@ -1237,7 +1247,7 @@ public interface HttpClient extends Measured {
    * Create a WebSocket stream with the specified options, and with the specified headers
    * @param options  the request options
    * @param headers  the headers
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(RequestOptions options, MultiMap headers);
 
@@ -1247,7 +1257,7 @@ public interface HttpClient extends Measured {
    * @param host  the host
    * @param requestURI  the relative URI
    * @param headers  the headers
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(int port, String host, String requestURI, MultiMap headers);
 
@@ -1256,7 +1266,7 @@ public interface HttpClient extends Measured {
    * @param host  the host
    * @param requestURI  the relative URI
    * @param headers  the headers
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(String host, String requestURI, MultiMap headers);
 
@@ -1266,7 +1276,7 @@ public interface HttpClient extends Measured {
    * @param options  the request options
    * @param headers  the headers
    * @param version  the websocket version
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(RequestOptions options, MultiMap headers, WebsocketVersion version);
 
@@ -1278,7 +1288,7 @@ public interface HttpClient extends Measured {
    * @param requestURI  the relative URI
    * @param headers  the headers
    * @param version  the websocket version
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(int port, String host, String requestURI, MultiMap headers, WebsocketVersion version);
 
@@ -1289,9 +1299,21 @@ public interface HttpClient extends Measured {
    * @param requestURI  the relative URI
    * @param headers  the headers
    * @param version  the websocket version
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(String host, String requestURI, MultiMap headers, WebsocketVersion version);
+
+  /**
+   * Create a WebSocket stream with the specified absolute url, the specified headers, using the specified version of WebSockets,
+   * and the specified websocket sub protocols.
+   *
+   * @param url          the absolute url
+   * @param headers      the headers
+   * @param version      the websocket version
+   * @param subProtocols the subprotocols to use
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
+   */
+  ReadStream<WebSocket> websocketStreamAbs(String url, MultiMap headers, WebsocketVersion version, String subProtocols);
 
   /**
    * Create a WebSocket stream to the specified port, host and relative request URI, with the specified headers, using
@@ -1300,7 +1322,7 @@ public interface HttpClient extends Measured {
    * @param headers  the headers
    * @param version  the websocket version
    * @param subProtocols  the subprotocols to use
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(RequestOptions options, MultiMap headers, WebsocketVersion version,
                                   String subProtocols);
@@ -1314,7 +1336,7 @@ public interface HttpClient extends Measured {
    * @param headers  the headers
    * @param version  the websocket version
    * @param subProtocols  the subprotocols to use
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(int port, String host, String requestURI, MultiMap headers, WebsocketVersion version,
                                   String subProtocols);
@@ -1327,7 +1349,7 @@ public interface HttpClient extends Measured {
    * @param headers  the headers
    * @param version  the websocket version
    * @param subProtocols  the subprotocols to use
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(String host, String requestURI, MultiMap headers, WebsocketVersion version,
                                   String subProtocols);
@@ -1335,7 +1357,7 @@ public interface HttpClient extends Measured {
   /**
    * Create a WebSocket stream at the relative request URI using the default host and port and the specified headers
    * @param requestURI  the relative URI
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(String requestURI);
 
@@ -1343,7 +1365,7 @@ public interface HttpClient extends Measured {
    * Create a WebSocket stream at the relative request URI using the default host and port and the specified headers
    * @param requestURI  the relative URI
    * @param headers  the headers
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(String requestURI, MultiMap headers);
 
@@ -1353,7 +1375,7 @@ public interface HttpClient extends Measured {
    * @param requestURI  the relative URI
    * @param headers  the headers
    * @param version  the websocket version
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(String requestURI, MultiMap headers, WebsocketVersion version);
 
@@ -1364,7 +1386,7 @@ public interface HttpClient extends Measured {
    * @param headers  the headers
    * @param version  the websocket version
    * @param subProtocols  the subprotocols
-   * @return a reference to this, so the API can be used fluently
+   * @return a stream emitting a WebSocket event when the client connection has been upgraded to a websocket
    */
   ReadStream<WebSocket> websocketStream(String requestURI, MultiMap headers, WebsocketVersion version,
                                   String subProtocols);
@@ -1380,6 +1402,9 @@ public interface HttpClient extends Measured {
    *   <li>when null is returned, the original response is processed by the original request response handler</li>
    *   <li>when a new {@code Future<HttpClientRequest>} is returned, the client will send this new request</li>
    * </ul>
+   * The new request will get a copy of the previous request headers unless headers are set. In this case,
+   * the client assumes that the redirect handler exclusively managers the headers of the new request.
+   * <p>
    * The handler must return a {@code Future<HttpClientRequest>} unsent so the client can further configure it and send it.
    *
    * @param handler the new redirect handler

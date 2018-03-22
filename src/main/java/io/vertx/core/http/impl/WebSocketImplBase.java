@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.http.impl;
@@ -27,9 +22,9 @@ import io.vertx.core.http.impl.ws.WebSocketFrameImpl;
 import io.vertx.core.http.impl.ws.WebSocketFrameInternal;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.net.SocketAddress;
-import io.vertx.core.net.impl.ConnectionBase;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 import javax.security.cert.X509Certificate;
 import java.util.UUID;
 
@@ -51,17 +46,20 @@ public abstract class WebSocketImplBase<S extends WebSocketBase> implements WebS
   private final int maxWebSocketMessageSize;
   private final MessageConsumer binaryHandlerRegistration;
   private final MessageConsumer textHandlerRegistration;
+  private String subProtocol;
   private Object metric;
   private Handler<WebSocketFrameInternal> frameHandler;
+  private Handler<Buffer> pongHandler;
   private Handler<Buffer> dataHandler;
   private Handler<Void> drainHandler;
   private Handler<Throwable> exceptionHandler;
   private Handler<Void> closeHandler;
   private Handler<Void> endHandler;
-  protected final ConnectionBase conn;
+  protected final Http1xConnectionBase conn;
   protected boolean closed;
 
-  WebSocketImplBase(VertxInternal vertx, ConnectionBase conn, boolean supportsContinuation,
+
+  WebSocketImplBase(VertxInternal vertx, Http1xConnectionBase conn, boolean supportsContinuation,
                               int maxWebSocketFrameSize, int maxWebSocketMessageSize) {
     this.supportsContinuation = supportsContinuation;
     this.textHandlerID = UUID.randomUUID().toString();
@@ -98,9 +96,26 @@ public abstract class WebSocketImplBase<S extends WebSocketBase> implements WebS
     }
   }
 
+  public void close(short statusCode) {
+    this.close(statusCode, null);
+  }
+
+  public void close(short statusCode, String reason) {
+    synchronized (conn) {
+      checkClosed();
+      conn.closeWithPayload(HttpUtils.generateWSCloseFrameByteBuf(statusCode, reason));
+      cleanupHandlers();
+    }
+  }
+
   @Override
   public boolean isSsl() {
     return conn.isSsl();
+  }
+
+  @Override
+  public SSLSession sslSession() {
+    return conn.sslSession();
   }
 
   @Override
@@ -129,6 +144,19 @@ public abstract class WebSocketImplBase<S extends WebSocketBase> implements WebS
   }
 
   @Override
+  public String subProtocol() {
+    synchronized(conn) {
+      return subProtocol;
+    }
+  }
+
+  void subProtocol(String subProtocol) {
+    synchronized (conn) {
+      this.subProtocol = subProtocol;
+    }
+  }
+
+  @Override
   public S writeBinaryMessage(Buffer data) {
     synchronized (conn) {
       checkClosed();
@@ -153,6 +181,18 @@ public abstract class WebSocketImplBase<S extends WebSocketBase> implements WebS
       writeFrame(WebSocketFrame.binaryFrame(data, true));
       return (S) this;
     }
+  }
+
+  @Override
+  public S writePing(Buffer data) {
+    if(data.length() > maxWebSocketFrameSize || data.length() > 125) throw new IllegalStateException("Ping cannot exceed maxWebSocketFrameSize or 125 bytes");
+    return writeFrame(WebSocketFrame.pingFrame(data));
+  }
+
+  @Override
+  public S writePong(Buffer data) {
+    if(data.length() > maxWebSocketFrameSize || data.length() > 125) throw new IllegalStateException("Pong cannot exceed maxWebSocketFrameSize or 125 bytes");
+    return writeFrame(WebSocketFrame.pongFrame(data));
   }
 
   private void writeMessageInternal(Buffer data) {
@@ -208,7 +248,7 @@ public abstract class WebSocketImplBase<S extends WebSocketBase> implements WebS
   public S writeFrame(WebSocketFrame frame) {
     synchronized (conn) {
       checkClosed();
-      conn.reportBytesWritten(frame.binaryData().length());
+      conn.reportBytesWritten(((WebSocketFrameInternal)frame).length());
       conn.writeToChannel(frame);
     }
     return (S) this;
@@ -222,22 +262,34 @@ public abstract class WebSocketImplBase<S extends WebSocketBase> implements WebS
 
   void handleFrame(WebSocketFrameInternal frame) {
     synchronized (conn) {
-      conn.reportBytesRead(frame.binaryData().length());
-      if (dataHandler != null) {
-        Buffer buff = Buffer.buffer(frame.getBinaryData());
-        dataHandler.handle(buff);
+      if (frame.type() != FrameType.CLOSE) {
+        conn.reportBytesRead(frame.length());
+        if (dataHandler != null) {
+          dataHandler.handle(frame.binaryData());
+        }
       }
-
-      if (frameHandler != null) {
-        frameHandler.handle(frame);
+      switch(frame.type()) {
+        case PONG:
+          if (pongHandler != null) {
+            pongHandler.handle(frame.binaryData());
+          }
+          break;
+        case TEXT:
+        case CLOSE:
+        case BINARY:
+        case CONTINUATION:
+          if (frameHandler != null) {
+            frameHandler.handle(frame);
+          }
+          break;
       }
     }
   }
 
   private class FrameAggregator implements Handler<WebSocketFrameInternal> {
-
     private Handler<String> textMessageHandler;
     private Handler<Buffer> binaryMessageHandler;
+
     private Buffer textMessageBuffer;
     private Buffer binaryMessageBuffer;
 
@@ -282,7 +334,6 @@ public abstract class WebSocketImplBase<S extends WebSocketBase> implements WebS
           textMessageHandler.handle(fullMessage);
         }
       }
-
     }
 
     private void handleBinaryFrame(WebSocketFrameInternal frame) {
@@ -339,6 +390,15 @@ public abstract class WebSocketImplBase<S extends WebSocketBase> implements WebS
         frameHandler = new FrameAggregator();
       }
       ((FrameAggregator) frameHandler).binaryMessageHandler = handler;
+      return (S) this;
+    }
+  }
+
+  @Override
+  public WebSocketBase pongHandler(Handler<Buffer> handler) {
+    synchronized (conn) {
+      checkClosed();
+      this.pongHandler = handler;
       return (S) this;
     }
   }

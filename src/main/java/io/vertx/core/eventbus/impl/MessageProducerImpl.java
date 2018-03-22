@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- *  ------------------------------------------------------
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *      The Eclipse Public License is available at
- *      http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *      The Apache License v2.0 is available at
- *      http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.eventbus.impl;
@@ -113,7 +108,18 @@ public class MessageProducerImpl<T> implements MessageProducer<T> {
   @Override
   public synchronized MessageProducer<T> drainHandler(Handler<Void> handler) {
     this.drainHandler = handler;
+    if (handler != null) {
+      checkDrained();
+    }
     return this;
+  }
+
+  private void checkDrained() {
+    Handler<Void> handler = drainHandler;
+    if (handler != null && credits >= maxSize / 2) {
+      this.drainHandler = null;
+      vertx.runOnContext(v -> handler.handle(null));
+    }
   }
 
   @Override
@@ -164,10 +170,6 @@ public class MessageProducerImpl<T> implements MessageProducer<T> {
         bus.send(address, data, options);
       }
     }
-    final Handler<Void> theDrainHandler = drainHandler;
-    if (theDrainHandler != null && credits >= maxSize / 2) {
-      this.drainHandler = null;
-      vertx.runOnContext(v -> theDrainHandler.handle(null));
-    }
+    checkDrained();
   }
 }

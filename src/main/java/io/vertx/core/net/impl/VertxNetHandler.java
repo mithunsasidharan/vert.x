@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.net.impl;
@@ -20,59 +15,32 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import io.vertx.core.impl.ContextImpl;
 
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * @author <a href="mailto:nmaurer@redhat.com">Norman Maurer</a>
  */
-public abstract class VertxNetHandler<C extends ConnectionBase> extends VertxHandler<C> {
+public abstract class VertxNetHandler extends VertxHandler<NetSocketImpl> {
 
-  private final Channel ch;
-  private final Map<Channel, C> connectionMap;
-  C conn; // We should try to make this private
+  private final Function<ChannelHandlerContext, NetSocketImpl> connectionFactory;
 
-  public VertxNetHandler(Channel ch, Map<Channel, C> connectionMap) {
-    this.ch = ch;
-    this.connectionMap = connectionMap;
+  public VertxNetHandler(Function<ChannelHandlerContext, NetSocketImpl> connectionFactory) {
+    this.connectionFactory = connectionFactory;
   }
 
-  public VertxNetHandler(Channel ch, C conn, Map<Channel, C> connectionMap) {
-    this.ch = ch;
-    this.connectionMap = connectionMap;
-    this.conn = conn;
+  public VertxNetHandler(NetSocketImpl conn) {
+    this(ctx -> conn);
   }
 
   @Override
-  protected C getConnection() {
-    return conn;
+  public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+    setConnection(connectionFactory.apply(ctx));
   }
 
   @Override
-  protected C removeConnection() {
-    connectionMap.remove(ch);
-    C conn = this.conn;
-    this.conn = null;
-    return conn;
-  }
-
-  @Override
-  protected void channelRead(C conn, ContextImpl context, ChannelHandlerContext chctx, Object msg) throws Exception {
-    if (conn != null) {
-      context.executeFromIO(() -> handleMsgReceived(conn, msg));
-    } else {
-      // just discard
-    }
-  }
-
-  protected abstract void handleMsgReceived(C conn, Object msg);
-
-  @Override
-  protected Object safeObject(Object msg, ByteBufAllocator allocator) throws Exception {
-    if (msg instanceof ByteBuf) {
-      return safeBuffer((ByteBuf) msg, allocator);
-    }
+  protected Object decode(Object msg, ByteBufAllocator allocator) throws Exception {
     return msg;
   }
 }

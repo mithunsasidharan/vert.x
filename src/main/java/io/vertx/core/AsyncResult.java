@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2013 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core;
@@ -66,10 +61,7 @@ public interface AsyncResult<T> {
    *
    * The {@code mapper} is called with the completed value and this mapper returns a value. This value will complete the result returned by this method call.<p>
    *
-   * If the {@code mapper} throws an exception, the returned future will be failed with this exception.<p>
-   *
-   * When this async result is failed, the failure will be propagated to the returned future and the {@code mapper}
-   * will not be called.
+   * When this async result is failed, the failure will be propagated to the returned async result and the {@code mapper} will not be called.
    *
    * @param mapper the mapper function
    * @return the mapped async result
@@ -139,10 +131,7 @@ public interface AsyncResult<T> {
    *
    * The {@code mapper} is called with the failure and this mapper returns a value. This value will complete the result returned by this method call.<p>
    *
-   * If the {@code mapper} throws an exception, the returned future will be failed with this exception.<p>
-   *
-   * When this async result is succeeded, the value will be propagated to the returned future and the {@code mapper}
-   * will not be called.
+   * When this async result is succeeded, the value will be propagated to the returned async result and the {@code mapper} will not be called.
    *
    * @param mapper the mapper function
    * @return the mapped async result

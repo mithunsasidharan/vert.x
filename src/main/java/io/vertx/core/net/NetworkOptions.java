@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2014 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.net;
@@ -24,7 +19,7 @@ import io.vertx.core.json.JsonObject;
 /**
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
-@DataObject(generateConverter = true)
+@DataObject(generateConverter = true, publicConverter = false)
 public abstract class NetworkOptions {
 
   /**
@@ -48,6 +43,11 @@ public abstract class NetworkOptions {
   public static final boolean DEFAULT_REUSE_ADDRESS = true;
 
   /**
+   * The default value of reuse port
+   */
+  public static final boolean DEFAULT_REUSE_PORT = false;
+
+  /**
    * The default log enabled = false
    */
   public static final boolean DEFAULT_LOG_ENABLED = false;
@@ -57,6 +57,7 @@ public abstract class NetworkOptions {
   private int trafficClass;
   private boolean reuseAddress;
   private boolean logActivity;
+  private boolean reusePort;
 
   /**
    * Default constructor
@@ -67,6 +68,7 @@ public abstract class NetworkOptions {
     reuseAddress = DEFAULT_REUSE_ADDRESS;
     trafficClass = DEFAULT_TRAFFIC_CLASS;
     logActivity = DEFAULT_LOG_ENABLED;
+    reusePort = DEFAULT_REUSE_PORT;
   }
 
   /**
@@ -78,6 +80,7 @@ public abstract class NetworkOptions {
     this.sendBufferSize = other.getSendBufferSize();
     this.receiveBufferSize = other.getReceiveBufferSize();
     this.reuseAddress = other.isReuseAddress();
+    this.reusePort = other.isReusePort();
     this.trafficClass = other.getTrafficClass();
     this.logActivity = other.logActivity;
   }
@@ -199,6 +202,26 @@ public abstract class NetworkOptions {
     return this;
   }
 
+  /**
+   * @return  the value of reuse address - only supported by native transports
+   */
+  public boolean isReusePort() {
+    return reusePort;
+  }
+
+  /**
+   * Set the value of reuse port.
+   * <p/>
+   * This is only supported by native transports.
+   *
+   * @param reusePort  the value of reuse port
+   * @return a reference to this, so the API can be used fluently
+   */
+  public NetworkOptions setReusePort(boolean reusePort) {
+    this.reusePort = reusePort;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -208,6 +231,7 @@ public abstract class NetworkOptions {
 
     if (receiveBufferSize != that.receiveBufferSize) return false;
     if (reuseAddress != that.reuseAddress) return false;
+    if (reusePort != that.reusePort) return false;
     if (sendBufferSize != that.sendBufferSize) return false;
     if (trafficClass != that.trafficClass) return false;
 
@@ -220,6 +244,7 @@ public abstract class NetworkOptions {
     result = 31 * result + receiveBufferSize;
     result = 31 * result + trafficClass;
     result = 31 * result + (reuseAddress ? 1 : 0);
+    result = 31 * result + (reusePort ? 1 : 0);
     return result;
   }
 }

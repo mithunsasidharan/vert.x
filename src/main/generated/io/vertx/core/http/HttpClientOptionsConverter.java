@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
  * Red Hat licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -24,9 +24,9 @@ import io.vertx.core.json.JsonArray;
  *
  * NOTE: This class has been automatically generated from the {@link io.vertx.core.http.HttpClientOptions} original class using Vert.x codegen.
  */
-public class HttpClientOptionsConverter {
+ class HttpClientOptionsConverter {
 
-  public static void fromJson(JsonObject json, HttpClientOptions obj) {
+   static void fromJson(JsonObject json, HttpClientOptions obj) {
     if (json.getValue("alpnVersions") instanceof JsonArray) {
       java.util.ArrayList<io.vertx.core.http.HttpVersion> list = new java.util.ArrayList<>();
       json.getJsonArray("alpnVersions").forEach( item -> {
@@ -109,7 +109,7 @@ public class HttpClientOptionsConverter {
     }
   }
 
-  public static void toJson(HttpClientOptions obj, JsonObject json) {
+   static void toJson(HttpClientOptions obj, JsonObject json) {
     if (obj.getAlpnVersions() != null) {
       JsonArray array = new JsonArray();
       obj.getAlpnVersions().forEach(item -> array.add(item.name()));

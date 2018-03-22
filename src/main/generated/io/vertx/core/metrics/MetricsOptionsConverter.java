@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
  * Red Hat licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -24,15 +24,15 @@ import io.vertx.core.json.JsonArray;
  *
  * NOTE: This class has been automatically generated from the {@link io.vertx.core.metrics.MetricsOptions} original class using Vert.x codegen.
  */
-public class MetricsOptionsConverter {
+ class MetricsOptionsConverter {
 
-  public static void fromJson(JsonObject json, MetricsOptions obj) {
+   static void fromJson(JsonObject json, MetricsOptions obj) {
     if (json.getValue("enabled") instanceof Boolean) {
       obj.setEnabled((Boolean)json.getValue("enabled"));
     }
   }
 
-  public static void toJson(MetricsOptions obj, JsonObject json) {
+   static void toJson(MetricsOptions obj, JsonObject json) {
     json.put("enabled", obj.isEnabled());
   }
 }

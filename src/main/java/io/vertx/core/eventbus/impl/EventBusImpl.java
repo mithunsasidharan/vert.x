@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2011-2014 The original author or authors
- * ------------------------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.eventbus.impl;
@@ -37,6 +32,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.metrics.EventBusMetrics;
 import io.vertx.core.spi.metrics.MetricsProvider;
+import io.vertx.core.spi.metrics.VertxMetrics;
 
 import java.util.Iterator;
 import java.util.List;
@@ -64,8 +60,9 @@ public class EventBusImpl implements EventBus, MetricsProvider {
   protected volatile boolean started;
 
   public EventBusImpl(VertxInternal vertx) {
+    VertxMetrics metrics = vertx.metricsSPI();
     this.vertx = vertx;
-    this.metrics = vertx.metricsSPI().createMetrics(this);
+    this.metrics = metrics != null ? metrics.createMetrics(this) : null;
   }
 
   @Override
@@ -214,7 +211,7 @@ public class EventBusImpl implements EventBus, MetricsProvider {
 
   @Override
   public boolean isMetricsEnabled() {
-    return metrics != null && metrics.isEnabled();
+    return metrics != null;
   }
 
   @Override
@@ -330,7 +327,9 @@ public class EventBusImpl implements EventBus, MetricsProvider {
 
   protected <T> void sendOrPub(SendContextImpl<T> sendContext) {
     MessageImpl message = sendContext.message;
-    metrics.messageSent(message.address(), !message.isSend(), true, false);
+    if (metrics != null) {
+      metrics.messageSent(message.address(), !message.isSend(), true, false);
+    }
     deliverMessageLocally(sendContext);
   }
 
@@ -340,7 +339,9 @@ public class EventBusImpl implements EventBus, MetricsProvider {
       if (reply.body() instanceof ReplyException) {
         // This is kind of clunky - but hey-ho
         ReplyException exception = (ReplyException) reply.body();
-        metrics.replyFailure(reply.address(), exception.failureType());
+        if (metrics != null) {
+          metrics.replyFailure(reply.address(), exception.failureType());
+        }
         result = Future.failedFuture(exception);
       } else {
         result = Future.succeededFuture(reply);
@@ -360,7 +361,9 @@ public class EventBusImpl implements EventBus, MetricsProvider {
   protected <T> void deliverMessageLocally(SendContextImpl<T> sendContext) {
     if (!deliverMessageLocally(sendContext.message)) {
       // no handlers
-      metrics.replyFailure(sendContext.message.address, ReplyFailure.NO_HANDLERS);
+      if (metrics != null) {
+        metrics.replyFailure(sendContext.message.address, ReplyFailure.NO_HANDLERS);
+      }
       if (sendContext.handlerRegistration != null) {
         sendContext.handlerRegistration.sendAsyncResultFailure(ReplyFailure.NO_HANDLERS, "No handlers for address "
                                                                + sendContext.message.address);
@@ -379,20 +382,26 @@ public class EventBusImpl implements EventBus, MetricsProvider {
       if (msg.isSend()) {
         //Choose one
         HandlerHolder holder = handlers.choose();
-        metrics.messageReceived(msg.address(), !msg.isSend(), isMessageLocal(msg), holder != null ? 1 : 0);
+        if (metrics != null) {
+          metrics.messageReceived(msg.address(), !msg.isSend(), isMessageLocal(msg), holder != null ? 1 : 0);
+        }
         if (holder != null) {
           deliverToHandler(msg, holder);
         }
       } else {
         // Publish
-        metrics.messageReceived(msg.address(), !msg.isSend(), isMessageLocal(msg), handlers.list.size());
+        if (metrics != null) {
+          metrics.messageReceived(msg.address(), !msg.isSend(), isMessageLocal(msg), handlers.list.size());
+        }
         for (HandlerHolder holder: handlers.list) {
           deliverToHandler(msg, holder);
         }
       }
       return true;
     } else {
-      metrics.messageReceived(msg.address(), !msg.isSend(), isMessageLocal(msg), 0);
+      if (metrics != null) {
+        metrics.messageReceived(msg.address(), !msg.isSend(), isMessageLocal(msg), 0);
+      }
       return false;
     }
   }
@@ -502,7 +511,7 @@ public class EventBusImpl implements EventBus, MetricsProvider {
     // Unregister all handlers explicitly - don't rely on context hooks
     for (Handlers handlers: handlerMap.values()) {
       for (HandlerHolder holder: handlers.list) {
-        holder.getHandler().unregister(true);
+        holder.getHandler().unregister();
       }
     }
   }
@@ -512,7 +521,7 @@ public class EventBusImpl implements EventBus, MetricsProvider {
     @SuppressWarnings("unchecked")
     Message<T> copied = msg.copyBeforeReceive();
 
-    if (metrics.isEnabled()) {
+    if (metrics != null) {
       metrics.scheduleMessage(holder.getHandler().getMetric(), msg.isLocal());
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
  * Red Hat licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -24,17 +24,15 @@ import io.vertx.core.json.JsonArray;
  *
  * NOTE: This class has been automatically generated from the {@link io.vertx.core.net.OpenSSLEngineOptions} original class using Vert.x codegen.
  */
-public class OpenSSLEngineOptionsConverter {
+ class OpenSSLEngineOptionsConverter {
 
-  public static void fromJson(JsonObject json, OpenSSLEngineOptions obj) {
+   static void fromJson(JsonObject json, OpenSSLEngineOptions obj) {
     if (json.getValue("sessionCacheEnabled") instanceof Boolean) {
       obj.setSessionCacheEnabled((Boolean)json.getValue("sessionCacheEnabled"));
     }
   }
 
-  public static void toJson(OpenSSLEngineOptions obj, JsonObject json) {
-    json.put("alpnAvailable", obj.isAlpnAvailable());
-    json.put("available", obj.isAvailable());
+   static void toJson(OpenSSLEngineOptions obj, JsonObject json) {
     json.put("sessionCacheEnabled", obj.isSessionCacheEnabled());
   }
 }

@@ -1,17 +1,12 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- * The Eclipse Public License is available at
- * http://www.eclipse.org/legal/epl-v10.html
- *
- * The Apache License v2.0 is available at
- * http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.test.core;
@@ -744,7 +739,7 @@ public class LocalEventBusTest extends EventBusTestBase {
     awaitLatch(latch);
     assertEquals(2, contexts.size());
   }
-  
+
   @Test
   public void testContextsPublish() throws Exception {
     Set<ContextImpl> contexts = new ConcurrentHashSet<>();
@@ -1121,13 +1116,8 @@ public class LocalEventBusTest extends EventBusTestBase {
 
   private void testUnregisterationOfRegisteredConsumerCallsEndHandler(MessageConsumer<String> consumer, ReadStream<?> readStream) {
     consumer.handler(msg -> {});
-    consumer.endHandler(v -> {
-      fail();
-    });
+    consumer.endHandler(v -> testComplete());
     consumer.unregister();
-    vertx.runOnContext(d -> {
-      testComplete();
-    });
     await();
   }
 

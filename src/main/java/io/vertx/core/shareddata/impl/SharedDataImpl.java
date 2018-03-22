@@ -1,17 +1,12 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright (c) 2014 Red Hat, Inc. and others
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- * The Eclipse Public License is available at
- * http://www.eclipse.org/legal/epl-v10.html
- *
- * The Apache License v2.0 is available at
- * http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.shareddata.impl;
@@ -30,7 +25,10 @@ import io.vertx.core.shareddata.SharedData;
 import io.vertx.core.spi.cluster.ClusterManager;
 
 import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -43,6 +41,7 @@ public class SharedDataImpl implements SharedData {
 
   private final VertxInternal vertx;
   private final ClusterManager clusterManager;
+  private final ConcurrentMap<String, LocalAsyncMapImpl<?, ?>> localAsyncMaps = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, AsynchronousLock> localLocks = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, Counter> localCounters = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, LocalMap<?, ?>> localMaps = new ConcurrentHashMap<>();
@@ -67,6 +66,24 @@ public class SharedDataImpl implements SharedData {
         resultHandler.handle(Future.failedFuture(ar.cause()));
       }
     });
+  }
+
+  @Override
+  public <K, V> void getAsyncMap(String name, Handler<AsyncResult<AsyncMap<K, V>>> resultHandler) {
+    Objects.requireNonNull(name, "name");
+    Objects.requireNonNull(resultHandler, "resultHandler");
+    if (clusterManager == null) {
+      getLocalAsyncMap(name, resultHandler);
+    } else {
+      clusterManager.<K, V>getAsyncMap(name, ar -> {
+        if (ar.succeeded()) {
+          // Wrap it
+          resultHandler.handle(Future.succeededFuture(new WrappedAsyncMap<K, V>(ar.result())));
+        } else {
+          resultHandler.handle(Future.failedFuture(ar.cause()));
+        }
+      });
+    }
   }
 
   @Override
@@ -108,6 +125,11 @@ public class SharedDataImpl implements SharedData {
     return (LocalMap<K, V>) localMaps.computeIfAbsent(name, n -> new LocalMapImpl<>(n, localMaps));
   }
 
+  @SuppressWarnings("unchecked")
+  private <K, V> void getLocalAsyncMap(String name, Handler<AsyncResult<AsyncMap<K, V>>> resultHandler) {
+    LocalAsyncMapImpl<K, V> asyncMap = (LocalAsyncMapImpl<K, V>) localAsyncMaps.computeIfAbsent(name, n -> new LocalAsyncMapImpl<>(vertx));
+    resultHandler.handle(Future.succeededFuture(new WrappedAsyncMap<>(asyncMap)));
+  }
 
   private void getLocalLock(String name, long timeout, Handler<AsyncResult<Lock>> resultHandler) {
     AsynchronousLock lock = localLocks.computeIfAbsent(name, n -> new AsynchronousLock(vertx));
@@ -122,7 +144,7 @@ public class SharedDataImpl implements SharedData {
 
   private static void checkType(Object obj) {
     if (obj == null) {
-      throw new IllegalArgumentException("Cannot put null in key or value of cluster wide map");
+      throw new IllegalArgumentException("Cannot put null in key or value of async map");
     }
     Class<?> clazz = obj.getClass();
     if (clazz == Integer.class || clazz == int.class ||
@@ -142,11 +164,11 @@ public class SharedDataImpl implements SharedData {
       // OK
       return;
     } else {
-      throw new IllegalArgumentException("Invalid type: " + clazz + " to put in cluster wide map");
+      throw new IllegalArgumentException("Invalid type: " + clazz + " to put in async map");
     }
   }
 
-  private static class WrappedAsyncMap<K, V> implements AsyncMap<K, V> {
+  public static final class WrappedAsyncMap<K, V> implements AsyncMap<K, V> {
 
     private final AsyncMap<K, V> delegate;
 
@@ -216,7 +238,24 @@ public class SharedDataImpl implements SharedData {
     public void size(Handler<AsyncResult<Integer>> resultHandler) {
       delegate.size(resultHandler);
     }
+
+    @Override
+    public void keys(Handler<AsyncResult<Set<K>>> resultHandler) {
+      delegate.keys(resultHandler);
+    }
+
+    @Override
+    public void values(Handler<AsyncResult<List<V>>> asyncResultHandler) {
+      delegate.values(asyncResultHandler);
+    }
+
+    @Override
+    public void entries(Handler<AsyncResult<Map<K, V>>> asyncResultHandler) {
+      delegate.entries(asyncResultHandler);
+    }
+
+    public AsyncMap<K, V> getDelegate() {
+      return delegate;
+    }
   }
-
-
 }

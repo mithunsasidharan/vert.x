@@ -1,17 +1,12 @@
 /*
- * Copyright (c) 2009 Red Hat, Inc.
- * -------------------------------------
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2009 Red Hat, Inc. and others
  *
- *     The Eclipse Public License is available at
- *     http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *     The Apache License v2.0 is available at
- *     http://www.opensource.org/licenses/apache2.0.php
- *
- * You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.logging;
@@ -20,6 +15,8 @@ package io.vertx.core.logging;
 import io.vertx.core.spi.logging.LogDelegate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.FormattingTuple;
+import org.slf4j.helpers.MessageFormatter;
 import org.slf4j.spi.LocationAwareLogger;
 
 import static org.slf4j.spi.LocationAwareLogger.*;
@@ -34,6 +31,10 @@ public class SLF4JLogDelegate implements LogDelegate {
 
   SLF4JLogDelegate(final String name) {
     logger = LoggerFactory.getLogger(name);
+  }
+
+  public SLF4JLogDelegate(Object logger) {
+    this.logger = (Logger) logger;
   }
 
   public boolean isInfoEnabled() {
@@ -169,8 +170,16 @@ public class SLF4JLogDelegate implements LogDelegate {
     }
 
     if (logger instanceof LocationAwareLogger) {
-      LocationAwareLogger l = (LocationAwareLogger) logger;
-      l.log(null, FQCN, level, msg, parameters, t);
+      // make sure we don't format the objects if we don't log the line anyway
+      if (level == TRACE_INT && logger.isTraceEnabled() ||
+          level == DEBUG_INT && logger.isDebugEnabled() ||
+          level == INFO_INT && logger.isInfoEnabled() ||
+          level == WARN_INT && logger.isWarnEnabled() ||
+          level == ERROR_INT && logger.isErrorEnabled()) {
+        LocationAwareLogger l = (LocationAwareLogger) logger;
+        FormattingTuple ft = MessageFormatter.arrayFormat(msg, parameters);
+        l.log(null, FQCN, level, ft.getMessage(), null, ft.getThrowable());
+      }
     } else {
       switch (level) {
         case TRACE_INT:

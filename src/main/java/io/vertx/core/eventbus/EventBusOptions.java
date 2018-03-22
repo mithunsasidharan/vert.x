@@ -1,17 +1,12 @@
 /*
- *  Copyright (c) 2011-2015 The original author or authors
- *  ------------------------------------------------------
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  and Apache License v2.0 which accompanies this distribution.
+ * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
  *
- *       The Eclipse Public License is available at
- *       http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+ * which is available at https://www.apache.org/licenses/LICENSE-2.0.
  *
- *       The Apache License v2.0 is available at
- *       http://www.opensource.org/licenses/apache2.0.php
- *
- *  You may elect to redistribute this code under either of these licenses.
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
 
 package io.vertx.core.eventbus;
@@ -29,7 +24,7 @@ import io.vertx.core.net.*;
  *
  * @author <a href="http://escoffier.me">Clement Escoffier</a>
  */
-@DataObject(generateConverter = true, inheritConverter = true)
+@DataObject(generateConverter = true, inheritConverter = true, publicConverter = false)
 public class EventBusOptions extends TCPSSLOptions {
 
   private boolean clustered = VertxOptions.DEFAULT_CLUSTERED;
@@ -394,25 +389,31 @@ public class EventBusOptions extends TCPSSLOptions {
   }
 
   @Override
-  public NetworkOptions setReceiveBufferSize(int receiveBufferSize) {
+  public EventBusOptions setReceiveBufferSize(int receiveBufferSize) {
     super.setReceiveBufferSize(receiveBufferSize);
     return this;
   }
 
   @Override
-  public NetworkOptions setReuseAddress(boolean reuseAddress) {
+  public EventBusOptions setReuseAddress(boolean reuseAddress) {
     super.setReuseAddress(reuseAddress);
     return this;
   }
 
   @Override
-  public NetworkOptions setSendBufferSize(int sendBufferSize) {
+  public EventBusOptions setReusePort(boolean reusePort) {
+    super.setReusePort(reusePort);
+    return this;
+  }
+
+  @Override
+  public EventBusOptions setSendBufferSize(int sendBufferSize) {
     super.setSendBufferSize(sendBufferSize);
     return this;
   }
 
   @Override
-  public NetworkOptions setTrafficClass(int trafficClass) {
+  public EventBusOptions setTrafficClass(int trafficClass) {
     super.setTrafficClass(trafficClass);
     return this;
   }
